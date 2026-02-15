@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package blog;
+
+service BlogService {
+  // Регистрация пользователя.
+  rpc Register    (RegisterRequest)     returns   (AuthResponse);
+  // Авторизация пользователя.
+  rpc Login       (LoginRequest)        returns   (AuthResponse);
+
+  // Методы обработки постов (создание, редактирование, удаление и т.д.).
+  rpc CreatePost  (CreatePostRequest)   returns   (PostResponse);
+  rpc GetPost     (GetPostRequest)      returns   (PostResponse);
+  rpc UpdatePost  (UpdatePostRequest)   returns   (PostResponse);
+  rpc DeletePost  (DeletePostRequest)   returns   (DeletePostResponse);
+  rpc ListPosts   (ListPostsRequest)    returns   (ListPostsResponse);
+}
+
+// Данные о пользователе.
+message User {
+  int64 id = 1;
+  string username = 2;
+}
+
+// Запрос на регистрацию пользователя.
+message RegisterRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+}
+
+// Авторизация пользователя.
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+// Успешный ответ при регистрации и авторизации.
+message AuthResponse {
+  User user = 1;
+}
+
+// ** Posts **
+
+// Данные о публикации (посте).
+message Post {
+  int64 id = 1;
+  int64 author_id = 2;
+  string title = 3;
+  string content = 4;
+}
+
+// Получить отдельный пост.
+message GetPostRequest {
+  int64 id = 1;
+}
+
+// Создание публикации (поста).
+message CreatePostRequest {
+  string title = 1;
+  string content = 2;
+}
+
+// Обновление публикации (поста).
+message UpdatePostRequest {
+  int64 id = 1;
+  string title = 2;
+  string content = 3;
+}
+
+// Успешный ответ при взаимодействии с постами.
+message PostResponse {
+  Post post = 1;
+}
+
+// Удалить публикацию.
+message DeletePostRequest {
+  int64 id = 1;
+}
+
+// Успешный ответ при удалении публикации.
+message DeletePostResponse {
+  bool success = 1;
+}
+
+// Запрос на предоставление списка публикаций.
+message ListPostsRequest {
+  repeated int64 ids = 1;
+}
+
+// Успешный ответ на запрос списка публикаций.
+message ListPostsResponse {
+  repeated Post posts = 1;
+}
