@@ -17,6 +17,7 @@ trait Cfg {
 }
 
 /// Конфигурационные данные для сервера Blog.
+#[derive(Clone)]
 pub struct BlogConfig {
     /// Настройки сервера.
     pub server: ServerCfg,
@@ -42,11 +43,14 @@ impl BlogConfig {
 }
 
 /// Настройки сервера.
+#[derive(Clone)]
 pub struct ServerCfg {
     /// IP-адрес сервера.
     pub host: Ipv4Addr,
     /// Порт сервера.
     pub port: u16,
+    /// Порт сервера gRPC.
+    pub port_grpc: u16,
 }
 
 impl ServerCfg {
@@ -54,18 +58,29 @@ impl ServerCfg {
     pub fn server_addr(&self) -> SocketAddr {
         SocketAddr::V4(SocketAddrV4::new(self.host, self.port))
     }
+
+    /// Ленивая генерация адреса сервера gRPC в `SocketAddr`.
+    pub fn grpc_addr(&self) -> SocketAddr {
+        SocketAddr::V4(SocketAddrV4::new(self.host, self.port_grpc))
+    }
 }
 
 impl Cfg for ServerCfg {
     fn collect() -> AnyhowResult<Self> {
         let host: Ipv4Addr = load_from_env("SERVER_HOST")?;
         let port: u16 = load_from_env("SERVER_PORT")?;
+        let port_grpc: u16 = load_from_env("GRPC_PORT")?;
 
-        Ok(Self { host, port })
+        Ok(Self {
+            host,
+            port,
+            port_grpc,
+        })
     }
 }
 
 /// Настройки безопасности.
+#[derive(Clone)]
 pub struct SecurityCfg {
     /// Разрешённый origin для CORS (или "*" для всех).
     pub cors_url: String,
@@ -86,6 +101,7 @@ impl Cfg for SecurityCfg {
 }
 
 /// Настройки для базы данных.
+#[derive(Clone)]
 pub struct DBCfg {
     /// Ссылка для доступа к базе данных.
     pub db_url: String,
