@@ -1,5 +1,5 @@
-pub mod error;
-pub mod models;
-pub mod post;
-pub mod user;
+pub(crate) mod error;
+pub(crate) mod models;
+pub(crate) mod post;
+pub(crate) mod user;
 mod validators;

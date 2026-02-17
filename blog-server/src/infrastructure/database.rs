@@ -29,7 +29,7 @@ static MIGRATOR: Migrator = migrate!("./migrations");
 ///
 /// ## Args
 /// - `db_param` — экземпляр конфигурации БД [`DBCfg`] с параметрами.
-pub async fn get_pool_postgres(db_param: &DBCfg) -> AnyhowResult<PgPool> {
+pub(crate) async fn get_pool_postgres(db_param: &DBCfg) -> AnyhowResult<PgPool> {
     let pool = PgPoolOptions::new()
         .max_connections(db_param.max_conn)
         .connect(&db_param.db_url)
@@ -48,7 +48,7 @@ pub async fn get_pool_postgres(db_param: &DBCfg) -> AnyhowResult<PgPool> {
 ///
 /// Принимаются объекты [`Pool`] и производные, например, [`PgPool`], которая
 /// является обёрткой для `Pool`, специально для `postgres`.
-pub async fn migrations<DB>(pool: &Pool<DB>) -> AnyhowResult<()>
+pub(crate) async fn migrations<DB>(pool: &Pool<DB>) -> AnyhowResult<()>
 where
     DB: Database,
     <DB as Database>::Connection: migrate::Migrate,

@@ -5,7 +5,7 @@ use crate::domain::models::{Email, UserId, UserPassword};
 
 /// Структура пользователя.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct User {
+pub(crate) struct User {
     /// Уникальный id пользователя.
     pub id: UserId,
     /// Username в системе.
@@ -18,7 +18,7 @@ pub struct User {
 
 /// DTO-модель для создания пользователя.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateUser {
+pub(crate) struct CreateUser {
     /// Username в системе.
     pub username: String,
     /// Адрес электронной почты.
@@ -29,7 +29,7 @@ pub struct CreateUser {
 
 /// DTO-модель для авторизации зарегистрированного пользователя.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LoginUser {
+pub(crate) struct LoginUser {
     pub username: String,
     pub password: UserPassword,
 }

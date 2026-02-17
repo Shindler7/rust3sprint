@@ -5,7 +5,7 @@ use actix_web::{HttpResponse, ResponseError};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum DomainError {
+pub(crate) enum DomainError {
     /// Пользователь не найден.
     #[error("Пользователь {0} не найден")]
     UserNotFound(String),
@@ -68,22 +68,22 @@ impl DomainError {
     ///
     /// ## Args
     /// - `name` — запрошенный `username`
-    pub fn user_not_found<S: Into<String>>(name: S) -> DomainError {
+    pub(crate) fn user_not_found<S: Into<String>>(name: S) -> DomainError {
         DomainError::UserNotFound(name.into())
     }
 
     /// Конструктор для ошибки [`DomainError::InvalidEmail`].
-    pub fn invalid_email<S: Into<String>>(err_msg: S) -> DomainError {
+    pub(crate) fn invalid_email<S: Into<String>>(err_msg: S) -> DomainError {
         DomainError::InvalidEmail(err_msg.into())
     }
 
     /// Конструктор для ошибки [`DomainError::InvalidPassword`].
-    pub fn invalid_password<S: Into<String>>(err_msg: S) -> DomainError {
+    pub(crate) fn invalid_password<S: Into<String>>(err_msg: S) -> DomainError {
         DomainError::InvalidPassword(err_msg.into())
     }
 
     /// Конструктор для ошибки [`DomainError::InvalidCredentials`].
-    pub fn invalid_credentials<S: Into<String>>(err_msg: S) -> DomainError {
+    pub(crate) fn invalid_credentials<S: Into<String>>(err_msg: S) -> DomainError {
         DomainError::InvalidCredentials(err_msg.into())
     }
 }

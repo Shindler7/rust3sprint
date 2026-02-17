@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// Структура сообщения (поста) в блоге.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Post {
+pub(crate) struct Post {
     /// Уникальный id сообщения.
     id: PostId,
     /// Заголовок сообщения.
@@ -28,7 +28,7 @@ impl Post {
     ///
     /// [`PostId`] создаётся уникальный, а валидность [`UserId`]
     /// не проверяется.
-    pub fn new(author_id: UserId, post: &CreatePost) -> Self {
+    pub(crate) fn new(author_id: UserId, post: &CreatePost) -> Self {
         let id = PostId::new();
         let created_at = Utc::now();
 
@@ -43,7 +43,7 @@ impl Post {
     }
 
     /// Обновить экземпляр на основе отредактированных данных.
-    pub fn update(&mut self, edit_post: &EditPost) {
+    pub(crate) fn update(&mut self, edit_post: &EditPost) {
         let update_at = Utc::now();
 
         self.updated_at = Some(update_at);
@@ -54,7 +54,7 @@ impl Post {
 
 /// Dto-структура для создания записи (поста).
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CreatePost {
+pub(crate) struct CreatePost {
     /// Заголовок поста.
     title: String,
     /// Содержимое поста.
@@ -63,7 +63,7 @@ pub struct CreatePost {
 
 /// Dto-структура для редактирования записи (поста).
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct EditPost {
+pub(crate) struct EditPost {
     /// Заголовок поста.
     title: String,
     /// Содержимое поста.

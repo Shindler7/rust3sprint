@@ -2,7 +2,7 @@
 use crate::settings::{EMAIL_RANGE_LEN_CHARS, PASSWORD_MIN_CHARS};
 
 /// Универсальный валидатор проекта для паролей.
-pub fn validate_password(pass: &str) -> Result<(), String> {
+pub(super) fn validate_password(pass: &str) -> Result<(), String> {
     if pass.len() < PASSWORD_MIN_CHARS {
         return Err(format!(
             "Пароль должен быть более {} символов",
@@ -26,7 +26,7 @@ pub fn validate_password(pass: &str) -> Result<(), String> {
 }
 
 /// Универсальный валидатор предоставленного адреса электронной почты.
-pub fn validate_email(email: &str) -> Result<(), String> {
+pub(super) fn validate_email(email: &str) -> Result<(), String> {
     let at_count = email.matches('@').count();
     if at_count == 0 {
         return Err("отсутствует символ '@'".to_string());

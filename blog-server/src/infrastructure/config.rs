@@ -18,7 +18,7 @@ trait Cfg {
 
 /// Конфигурационные данные для сервера Blog.
 #[derive(Clone)]
-pub struct BlogConfig {
+pub(crate) struct BlogConfig {
     /// Настройки сервера.
     pub server: ServerCfg,
     /// Настройки безопасности.
@@ -29,7 +29,7 @@ pub struct BlogConfig {
 
 impl BlogConfig {
     /// Загрузить параметры конфигурации.
-    pub fn load() -> AnyhowResult<Self> {
+    pub(crate) fn load() -> AnyhowResult<Self> {
         let server = ServerCfg::collect()?;
         let security = SecurityCfg::collect()?;
         let db = DBCfg::collect()?;
@@ -44,7 +44,7 @@ impl BlogConfig {
 
 /// Настройки сервера.
 #[derive(Clone)]
-pub struct ServerCfg {
+pub(crate) struct ServerCfg {
     /// IP-адрес сервера.
     pub host: Ipv4Addr,
     /// Порт сервера.
@@ -55,12 +55,12 @@ pub struct ServerCfg {
 
 impl ServerCfg {
     /// Ленивая генерация адреса сервера в экземпляре `SocketAddr`.
-    pub fn server_addr(&self) -> SocketAddr {
+    pub(crate) fn server_addr(&self) -> SocketAddr {
         SocketAddr::V4(SocketAddrV4::new(self.host, self.port))
     }
 
     /// Ленивая генерация адреса сервера gRPC в `SocketAddr`.
-    pub fn grpc_addr(&self) -> SocketAddr {
+    pub(crate) fn grpc_addr(&self) -> SocketAddr {
         SocketAddr::V4(SocketAddrV4::new(self.host, self.port_grpc))
     }
 }
@@ -81,7 +81,7 @@ impl Cfg for ServerCfg {
 
 /// Настройки безопасности.
 #[derive(Clone)]
-pub struct SecurityCfg {
+pub(crate) struct SecurityCfg {
     /// Разрешённый origin для CORS (или "*" для всех).
     pub cors_url: String,
     /// Таймаут запроса в секундах.
@@ -102,7 +102,7 @@ impl Cfg for SecurityCfg {
 
 /// Настройки для базы данных.
 #[derive(Clone)]
-pub struct DBCfg {
+pub(crate) struct DBCfg {
     /// Ссылка для доступа к базе данных.
     pub db_url: String,
     /// Максимальное количество соединений, поддерживаемых пулом.

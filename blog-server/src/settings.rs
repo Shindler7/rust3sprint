@@ -2,8 +2,12 @@
 
 use std::ops::RangeInclusive;
 
+/// Время задержки после сигнала "стоп" серверам до окончательного останова
+/// (миллисекунды).
+pub(crate) const SLEEP_BEFORE_SHUTDOWN_MS: u64 = 100;
+
 /// Подсказка при ошибке доступа к .env-файлу.
-pub const ENV_HELP: &str = r#"
+pub(crate) const ENV_HELP: &str = r#"
 Файл `.env` должен располагаться в корне приложения (проекта).
 
 Примерная структура:
@@ -31,19 +35,19 @@ RUST_LOG=blog-server=debug,actix_web=info
 "#;
 
 /// Шаблон ссылки для подключения к базе данных.
-pub const DB_URL_TEMPLATE: &str = "postgres://{user}:{password}@{host}:{port}/{db}";
+pub(crate) const DB_URL_TEMPLATE: &str = "postgres://{user}:{password}@{host}:{port}/{db}";
 
 /// Максимальное количество соединений, поддерживаемых пулом.
-pub const DB_MAX_CONN: u32 = 10;
+pub(crate) const DB_MAX_CONN: u32 = 10;
 
 /// Допустимый диапазон длины имени пользователя (username).
-pub const USERNAME_RANGE_LEN_CHARS: RangeInclusive<u64> = 3..=32;
+pub(crate) const USERNAME_RANGE_LEN_CHARS: RangeInclusive<u64> = 3..=32;
 
 /// Допустимый диапазон длины адреса электронной почты.
-pub const EMAIL_RANGE_LEN_CHARS: RangeInclusive<usize> = 5..=254;
+pub(crate) const EMAIL_RANGE_LEN_CHARS: RangeInclusive<usize> = 5..=254;
 
 /// Минимальная длина пароля пользователя.
-pub const PASSWORD_MIN_CHARS: usize = 10;
+pub(crate) const PASSWORD_MIN_CHARS: usize = 10;
 
 /// Максимальная длина заголовка публикации (поста).
-pub const POSTS_TITLE_MAX_CHARS: usize = 100;
+pub(crate) const POSTS_TITLE_MAX_CHARS: usize = 100;
