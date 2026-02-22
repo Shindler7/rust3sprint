@@ -1,2 +1,4 @@
-mod user_repo;
-mod post_repo;
+//! Репозитории обработки данных.
+mod macros;
+pub(crate) mod post_repo;
+pub(crate) mod user_repo;

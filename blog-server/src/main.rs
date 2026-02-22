@@ -3,20 +3,16 @@
 //! Обеспечивает работу `actix_web`, механики `gRPC` и взаимодействие с базой
 //! данных.
 
-use crate::settings::SLEEP_BEFORE_SHUTDOWN_MS;
 use crate::{
-    infrastructure::{
-        config::BlogConfig,
-        database::{get_pool_postgres, migrations},
-        logging::init_logging,
-    },
+    application::AppServices,
+    infrastructure::{config::BlogConfig, database::get_pool_postgres, logging::init_logging},
     server::{run_blog_grpc, run_blog_server},
-    settings::ENV_HELP,
+    settings::{ENV_HELP, SLEEP_BEFORE_SHUTDOWN_MS},
 };
 use actix_web::rt::{spawn, time};
 use anyhow::{Context, Result as AnyhowResult};
 use dotenvy::dotenv;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 use tokio::sync::broadcast;
 use tracing::info;
 
@@ -36,18 +32,22 @@ async fn main() -> AnyhowResult<()> {
 
     info!("Настройка серверной инфраструктуры перед запуском...");
 
-    let cfg = BlogConfig::load()?;
+    let cfg = Arc::new(BlogConfig::load()?);
 
     // Соединение с БД и осуществление миграций.
-    let pool = get_pool_postgres(&cfg.db).await?;
+    let pool = get_pool_postgres(&cfg.db, true).await?;
     info!("Успешное подключение к базе данных");
-    migrations(&pool).await?;
+    let app_services = AppServices::new(&pool);
 
     // Запуск серверов.
     let tx = broadcast::channel::<bool>(1).0;
 
-    let http = spawn(run_blog_server(cfg.clone(), pool.clone(), tx.subscribe()));
-    let grpc = spawn(run_blog_grpc(cfg, pool, tx.subscribe()));
+    let http = spawn(run_blog_server(
+        Arc::clone(&cfg),
+        app_services.clone(),
+        tx.subscribe(),
+    ));
+    let grpc = spawn(run_blog_grpc(cfg, app_services, tx.subscribe()));
 
     tokio::signal::ctrl_c()
         .await

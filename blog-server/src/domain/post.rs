@@ -1,20 +1,21 @@
 //! Модели для сообщений в блоге.
 
-use crate::domain::models::{PostId, UserId};
+use crate::domain::types::DataId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Структура сообщения (поста) в блоге.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct Post {
-    /// Уникальный id сообщения.
-    id: PostId,
+    /// Уникальный id сообщения. Допускается `None` при создании экземпляра
+    /// перед сохранением в базу данных. 
+    id: Option<DataId>,
     /// Заголовок сообщения.
     title: String,
     /// Содержание сообщения.
     content: String,
     /// Id автора поста, на основе [`UserId`].
-    author_id: UserId,
+    author_id: DataId,
     /// Время создания поста.
     #[serde(with = "chrono::serde::ts_seconds")]
     created_at: DateTime<Utc>,
@@ -25,15 +26,11 @@ pub(crate) struct Post {
 
 impl Post {
     /// Создание экземпляра [`Post`] на основе предоставленных данных.
-    ///
-    /// [`PostId`] создаётся уникальный, а валидность [`UserId`]
-    /// не проверяется.
-    pub(crate) fn new(author_id: UserId, post: &CreatePost) -> Self {
-        let id = PostId::new();
+    pub(crate) fn new(post_id: Option<DataId>, author_id: DataId, post: &CreatePost) -> Self {
         let created_at = Utc::now();
 
         Self {
-            id,
+            id: post_id,
             title: post.title.clone(),
             content: post.content.clone(),
             author_id,

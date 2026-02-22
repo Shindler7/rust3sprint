@@ -1,40 +1,49 @@
 //! Серверная инфраструктура.
 
-use crate::{infrastructure::config::BlogConfig, presentation::grpc_service::BlogGrpcService};
+use crate::application::AppServices;
+use crate::{
+    infrastructure::config::BlogConfig,
+    presentation::{grpc_service::BlogGrpcService, http_handlers},
+};
 use actix_cors::Cors;
 use actix_web::{
-    http::header::{AUTHORIZATION, CONTENT_TYPE}, middleware::Logger,
-    web,
+    http::header::{AUTHORIZATION, CONTENT_TYPE}, middleware::Logger, web,
     App,
+    HttpResponse,
     HttpServer,
 };
 use anyhow::{Context, Result as AnyhowResult};
 use proto_crate::proto_blog::blog_service_server::BlogServiceServer;
-use sqlx::PgPool;
+use std::sync::Arc;
 use tokio::sync::broadcast::Receiver;
 use tonic::transport::Server;
 use tracing::info;
 
 /// Сервер `actix_web`, обслуживающий блог.
 pub(crate) async fn run_blog_server(
-    cfg: BlogConfig,
-    pool: PgPool,
+    cfg: Arc<BlogConfig>,
+    app_services: AppServices,
     mut shutdown: Receiver<bool>,
 ) -> AnyhowResult<()> {
-    info!("Запуск основного HTTP сервера...");
+    info!("Запуск основного HTTP сервера... {}", cfg.server.server_addr());
 
+    let cfg_clone = Arc::clone(&cfg);
     let server = HttpServer::new(move || {
         let cors = Cors::default()
-            .allowed_origin(&cfg.security.cors_url)
-            .allowed_methods(vec!["GET", "POST"])
+            .allowed_origin(&cfg_clone.security.cors_url)
+            .allowed_methods(vec!["GET", "POST", "OPTIONS"])
             .allowed_headers(vec![CONTENT_TYPE, AUTHORIZATION])
             .supports_credentials()
-            .max_age(cfg.security.cors_max_age);
+            .max_age(cfg_clone.security.cors_max_age);
 
         App::new()
             .wrap(Logger::default())
             .wrap(cors)
-            .app_data(web::Data::new(pool.clone()))
+            .app_data(web::Data::new(Arc::clone(&app_services.auth_service)))
+            .app_data(web::Data::new(Arc::clone(&app_services.blog_service)))
+            .app_data(web::Data::new(Arc::clone(&cfg_clone)))
+            .service(web::scope("/api").configure(http_handlers::configurate))
+            .default_service(web::to(|| async { HttpResponse::NotFound().finish() }))
     })
     .bind(cfg.server.server_addr())?
     .run();
@@ -56,13 +65,13 @@ pub(crate) async fn run_blog_server(
 
 /// Сервер `tonik`, обслуживающий механизмы `gRPC`.
 pub(crate) async fn run_blog_grpc(
-    cfg: BlogConfig,
-    pool: PgPool,
+    cfg: Arc<BlogConfig>,
+    app_services: AppServices,
     mut shutdown: Receiver<bool>,
 ) -> AnyhowResult<()> {
     info!("Запуск gPRC...");
 
-    let service = BlogGrpcService::new(pool);
+    let service = BlogGrpcService::new(app_services);
 
     Server::builder()
         .add_service(BlogServiceServer::new(service))

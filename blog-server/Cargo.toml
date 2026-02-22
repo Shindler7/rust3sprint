@@ -10,13 +10,11 @@ workspace = true
 [dependencies]
 #actix-web-httpauth = "0.8"
 actix-cors = "0.7"
-#argon2 = { version = "0.5", features = ["std"] }
-#jsonwebtoken = "10"
-serde = { version = "1.0.228", features = ["derive"] }
-sqlx = { version = "0.8", features = ["postgres", "uuid", "runtime-tokio-rustls"] }
+argon2 = { version = "0.5", features = ["std"] }
+jsonwebtoken = { version = "10", features = ["aws_lc_rs"] }
+sqlx = { version = "0.8", features = ["postgres", "uuid", "runtime-tokio-rustls", "chrono"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "chrono"] }
-uuid = { version = "1.20.0", features = ["v4", "serde"] }
 
 proto-crate = {path = "../proto-crate"}
 
@@ -25,6 +23,7 @@ anyhow.workspace = true
 actix-web.workspace = true
 chrono.workspace = true
 dotenvy.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

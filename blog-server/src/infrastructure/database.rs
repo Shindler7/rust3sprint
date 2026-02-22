@@ -2,7 +2,9 @@
 
 use crate::infrastructure::config::DBCfg;
 use anyhow::{Context, Result as AnyhowResult};
-use sqlx::{migrate, migrate::Migrator, postgres::PgPoolOptions, Database, PgPool, Pool};
+use sqlx::{
+    migrate, migrate::Migrate, migrate::Migrator, postgres::PgPoolOptions, Database, PgPool, Pool,
+};
 
 /// Подсказка при ошибках миграции базы данных.
 const DB_MIGRATE_HELP: &str = r#"
@@ -28,8 +30,9 @@ static MIGRATOR: Migrator = migrate!("./migrations");
 /// результат возвращает экземпляр [`PgPool`].
 ///
 /// ## Args
-/// - `db_param` — экземпляр конфигурации БД [`DBCfg`] с параметрами.
-pub(crate) async fn get_pool_postgres(db_param: &DBCfg) -> AnyhowResult<PgPool> {
+/// - `db_param` — экземпляр конфигурации БД [`DBCfg`] с параметрами
+/// - `migrate` — если True, вызывается метод миграций
+pub(crate) async fn get_pool_postgres(db_param: &DBCfg, migrate: bool) -> AnyhowResult<PgPool> {
     let pool = PgPoolOptions::new()
         .max_connections(db_param.max_conn)
         .connect(&db_param.db_url)
@@ -41,6 +44,10 @@ pub(crate) async fn get_pool_postgres(db_param: &DBCfg) -> AnyhowResult<PgPool> 
             )
         })?;
 
+    if migrate {
+        migrations(&pool).await?;
+    }
+
     Ok(pool)
 }
 
@@ -51,7 +58,7 @@ pub(crate) async fn get_pool_postgres(db_param: &DBCfg) -> AnyhowResult<PgPool> 
 pub(crate) async fn migrations<DB>(pool: &Pool<DB>) -> AnyhowResult<()>
 where
     DB: Database,
-    <DB as Database>::Connection: migrate::Migrate,
+    <DB as Database>::Connection: Migrate,
 {
     MIGRATOR
         .run(pool)

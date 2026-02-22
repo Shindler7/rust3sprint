@@ -1,47 +1,31 @@
 //! Инфраструктура сервера для обработки gRPC.
 
+use crate::application::AppServices;
 use proto_crate::proto_blog::{
     blog_service_server::BlogService, AuthResponse, CreatePostRequest, DeletePostRequest, DeletePostResponse,
     GetPostRequest, ListPostsRequest, ListPostsResponse, LoginRequest, PostResponse,
     RegisterRequest, UpdatePostRequest,
 };
-use sqlx::{Database, Pool};
-use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
-/// gRPC-сервис блога, использующий пул соединений с базой данных.
-///
-/// Хранит `Arc<Pool<DB>>`, что позволяет безопасно клонировать сервис
-/// и переиспользовать соединения между запросами.
-pub(crate) struct BlogGrpcService<DB: Database> {
-    pool: Arc<Pool<DB>>,
+/// gRPC-сервис блога, использующий методы взаимодействия с базой данных.
+pub(crate) struct BlogGrpcService {
+    /// [`AppServices`] для взаимодействия с методами обработки данных.
+    services: AppServices,
 }
 
-impl<DB: Database> Clone for BlogGrpcService<DB> {
-    fn clone(&self) -> Self {
-        Self {
-            pool: Arc::clone(&self.pool),
-        }
-    }
-}
-
-impl<DB: Database> BlogGrpcService<DB> {
+impl BlogGrpcService {
     /// Создать экземпляр [`BlogGrpcService`] с привязкой к пулу соединений
     /// к базе данных.
-    pub(crate) fn new(pool: Pool<DB>) -> Self {
+    pub(crate) fn new(app_services: AppServices) -> Self {
         Self {
-            pool: Arc::new(pool),
+            services: app_services,
         }
-    }
-
-    /// Доступ к пулу соединений.
-    pub(crate) fn pool(&self) -> Arc<Pool<DB>> {
-        Arc::clone(&self.pool)
     }
 }
 
 #[tonic::async_trait]
-impl<DB: Database> BlogService for BlogGrpcService<DB> {
+impl BlogService for BlogGrpcService {
     async fn register(
         &self,
         request: Request<RegisterRequest>,

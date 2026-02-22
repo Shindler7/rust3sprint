@@ -1,5 +1,6 @@
 //! Конфигурация веб-сервера.
 
+use crate::infrastructure::jwt::JwtService;
 use crate::settings::{DB_MAX_CONN, DB_URL_TEMPLATE};
 use anyhow::{anyhow, Context, Result as AnyhowResult};
 use std::{
@@ -86,6 +87,8 @@ pub(crate) struct SecurityCfg {
     pub cors_url: String,
     /// Таймаут запроса в секундах.
     pub cors_max_age: usize,
+    /// Инфраструктура для обработки JWT-токенов.
+    pub jwt_service: JwtService,
 }
 
 impl Cfg for SecurityCfg {
@@ -93,9 +96,14 @@ impl Cfg for SecurityCfg {
         let cors_url = load_from_env("CORS_URL")?;
         let cors_max_age = load_from_env("CORS_MAX_AGE")?;
 
+        // Создание JWT-механизации.
+        let jwt_secret: String = load_from_env("JWT_SECRET_KEY")?;
+        let jwt_service = JwtService::from_secret(jwt_secret);
+
         Ok(Self {
             cors_url,
             cors_max_age,
+            jwt_service,
         })
     }
 }
