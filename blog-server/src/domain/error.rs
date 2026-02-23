@@ -1,6 +1,7 @@
 //! Собственные ошибки.
 
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use crate::impl_domain_error_ctor;
 use jsonwebtoken::errors::{Error as JwtError, ErrorKind};
 use sqlx::Error as SqlxError;
 use thiserror::Error;
@@ -40,9 +41,18 @@ pub(crate) enum DomainError {
     #[error("Публикация не найдена")]
     PostNotFound,
 
+    /// Публикация содержит некорректные данные (например, слишком короткий
+    /// или слишком длинный текст и т.п.)
+    #[error("Публикация не соответствует Правилам: {0}")]
+    InvalidPostContent(String),
+
     /// Доступ для пользователя к запрошенному разделу запрещён.
     #[error("Вы не можете изменять эти данные")]
     Forbidden,
+
+    /// Ошибки взаимодействия с API, не закрытые точными типами.
+    #[error("Ошибка запроса к API: {0}")]
+    ApiError(String),
 
     /// Серверные ошибки взаимодействия с базой данных.
     ///
@@ -70,9 +80,10 @@ impl ResponseError for DomainError {
                 (StatusCode::UNAUTHORIZED, self.to_string())
             }
 
-            Self::InvalidEmail(_) | Self::InvalidUsername(_) => {
-                (StatusCode::BAD_REQUEST, self.to_string())
-            }
+            Self::InvalidEmail(_)
+            | Self::InvalidUsername(_)
+            | Self::InvalidPostContent(_)
+            | Self::ApiError(_) => (StatusCode::BAD_REQUEST, self.to_string()),
 
             Self::ServerError(_) | Self::DataBaseInternal(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
@@ -87,33 +98,34 @@ impl ResponseError for DomainError {
 }
 
 impl DomainError {
-    /// Конструктор для ошибки [`DomainError::InvalidEmail`].
-    pub(crate) fn invalid_email<S: Into<String>>(err_msg: S) -> DomainError {
-        DomainError::InvalidEmail(err_msg.into())
-    }
+    impl_domain_error_ctor! {
+        /// Конструктор для ошибки [`DomainError::InvalidEmail`].
+        fn invalid_email => InvalidEmail;
 
-    /// Конструктор для ошибки [`DomainError::InvalidPassword`].
-    pub(crate) fn invalid_password<S: Into<String>>(err_msg: S) -> DomainError {
-        let mut err_msg = err_msg.into();
-        if err_msg.is_empty() {
-            err_msg = "проверьте ввод, выключен ли Caps Lock".to_string();
+        /// Конструктор для ошибки [`DomainError::InvalidUsername`].
+        fn invalid_username => InvalidUsername;
+
+        /// Конструктор для ошибки [`DomainError::InvalidCredentials`].
+        fn invalid_credentials => InvalidCredentials;
+
+        /// Конструктор для ошибки [`DomainError::ServerError`].
+        fn server_err => ServerError;
+
+        /// Конструктор для ошибки [`DomainError::InvalidPostContent`].
+        fn invalid_post => InvalidPostContent;
+
+        /// Конструктор для ошибки [`DomainError::ApiError`].
+        fn api_error => ApiError;
+
+        @custom
+        /// Конструктор для ошибки [`DomainError::InvalidPassword`].
+        fn invalid_password(err_msg: impl Into<String>) -> DomainError {
+            let mut err_msg = err_msg.into();
+            if err_msg.is_empty() {
+                err_msg = "проверьте ввод, выключен ли Caps Lock".to_string();
+            }
+            DomainError::InvalidPassword(err_msg)
         }
-        DomainError::InvalidPassword(err_msg)
-    }
-
-    /// Конструктор для ошибки [`DomainError::InvalidUsername`].
-    pub(crate) fn invalid_username<S: Into<String>>(err_msg: S) -> DomainError {
-        DomainError::InvalidUsername(err_msg.into())
-    }
-
-    /// Конструктор для ошибки [`DomainError::InvalidCredentials`].
-    pub(crate) fn invalid_credentials<S: Into<String>>(err_msg: S) -> DomainError {
-        DomainError::InvalidCredentials(err_msg.into())
-    }
-
-    /// Конструктор для ошибки [`DomainError::ServerError`].
-    pub(crate) fn server_err<S: Into<String>>(err_msg: S) -> DomainError {
-        DomainError::ServerError(err_msg.into())
     }
 }
 
@@ -123,7 +135,8 @@ pub(crate) struct RepoErrorMap {
     pub(crate) not_found: DomainError,
     /// Соответствие constraint доменной ошибке.
     // pub(crate) unique_violations: &'static [(&'static str, DomainError)],
-    pub(crate) unique_violations: Vec<(&'static str, DomainError)>,
+    // pub(crate) unique_violations: Vec<(&'static str, DomainError)>,
+    pub(crate) unique_violations: Option<Vec<(&'static str, DomainError)>>,
 }
 
 /// Расширение для Result<T, SqlxError>.
@@ -138,13 +151,14 @@ impl<T> SqlxResultExt<T> for Result<T, SqlxError> {
             SqlxError::RowNotFound => ctx.not_found,
             SqlxError::Database(db_err) => {
                 let constraint = db_err.constraint().unwrap_or_default();
-                match ctx
-                    .unique_violations
-                    .into_iter()
-                    .find(|(c, _)| *c == constraint)
-                {
-                    Some((_, domain_err)) => domain_err,
-                    None => DomainError::DataBaseInternal(SqlxError::Database(db_err)),
+
+                if let Some(uv) = ctx.unique_violations {
+                    match uv.into_iter().find(|(c, _)| *c == constraint) {
+                        Some((_, domain_err)) => domain_err,
+                        None => DomainError::DataBaseInternal(SqlxError::Database(db_err)),
+                    }
+                } else {
+                    DomainError::DataBaseInternal(SqlxError::Database(db_err))
                 }
             }
             _ => DomainError::DataBaseInternal(err),

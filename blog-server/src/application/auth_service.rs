@@ -3,13 +3,11 @@
 use crate::domain::types::Username;
 use crate::{
     data::user_repo::UserRepository,
-    domain,
     domain::{
         error::DomainError,
         user::{CreateUser, User},
     },
 };
-use chrono::Utc;
 use std::sync::Arc;
 use tracing::{info, instrument};
 
@@ -42,15 +40,9 @@ where
             .hash()
             .map_err(|err| DomainError::server_err(err.to_string()))?;
 
-        let created_at = Utc::now();
-
-        let user = User {
-            id: None,
-            username: create_user.username.to_lowercase(),
-            email: create_user.email.to_lowercase(),
-            password_hash,
-            created_at,
-        };
+        let user = User::new_by_create(create_user.clone(), &password_hash)
+            .username_to_lower()
+            .email_to_lower();
 
         let user = self.repo.create(&user).await?;
         info!("Создан новый пользователь: {}", user.username);

@@ -1,10 +1,7 @@
 //! Новые типы моделей для domain.
 
 use crate::{
-    domain::{
-        error::DomainError,
-        validators::{validate_email, validate_password, validate_username},
-    },
+    domain::{error::DomainError, validators::*},
     settings::{ArgonConfig, ARGON_ALGORITHM, ARGON_ALGORITHM_VERSION},
     validated_newtype,
 };
@@ -25,6 +22,12 @@ pub(crate) struct DataId(pub i64);
 impl From<DataId> for i64 {
     fn from(id: DataId) -> Self {
         id.0
+    }
+}
+
+impl Display for DataId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -116,4 +119,24 @@ impl UserPassword {
             params,
         ))
     }
+}
+
+validated_newtype! {
+    /// Новый тип для заголовка публикации.
+    #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, sqlx::Type)]
+    #[serde(try_from = "String")]
+    #[sqlx(transparent)]
+    pub(crate) struct PostTitle;
+    validate = validate_title;
+    error = DomainError::invalid_post;
+}
+
+validated_newtype! {
+    /// Новый тип для заголовка публикации.
+    #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, sqlx::Type)]
+    #[serde(try_from = "String")]
+    #[sqlx(transparent)]
+    pub(crate) struct PostContent;
+    validate = validate_content;
+    error = DomainError::invalid_post;
 }

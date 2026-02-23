@@ -1,9 +1,9 @@
 //! Серверная инфраструктура.
 
-use crate::application::AppServices;
 use crate::{
+    application::AppServices,
     infrastructure::config::BlogConfig,
-    presentation::{grpc_service::BlogGrpcService, http_handlers},
+    presentation::{api_handlers, grpc_service::BlogGrpcService, middleware},
 };
 use actix_cors::Cors;
 use actix_web::{
@@ -25,7 +25,10 @@ pub(crate) async fn run_blog_server(
     app_services: AppServices,
     mut shutdown: Receiver<bool>,
 ) -> AnyhowResult<()> {
-    info!("Запуск основного HTTP сервера... {}", cfg.server.server_addr());
+    info!(
+        "Запуск основного HTTP сервера... {}",
+        cfg.server.server_addr()
+    );
 
     let cfg_clone = Arc::clone(&cfg);
     let server = HttpServer::new(move || {
@@ -36,13 +39,16 @@ pub(crate) async fn run_blog_server(
             .supports_credentials()
             .max_age(cfg_clone.security.cors_max_age);
 
+        let default_headers = middleware::default_headers();
+
         App::new()
             .wrap(Logger::default())
+            .wrap(default_headers)
             .wrap(cors)
+            .configure(api_handlers::configure_api_routers)
             .app_data(web::Data::new(Arc::clone(&app_services.auth_service)))
             .app_data(web::Data::new(Arc::clone(&app_services.blog_service)))
             .app_data(web::Data::new(Arc::clone(&cfg_clone)))
-            .service(web::scope("/api").configure(http_handlers::configurate))
             .default_service(web::to(|| async { HttpResponse::NotFound().finish() }))
     })
     .bind(cfg.server.server_addr())?

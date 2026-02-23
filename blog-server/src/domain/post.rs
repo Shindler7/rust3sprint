@@ -1,6 +1,6 @@
 //! Модели для сообщений в блоге.
 
-use crate::domain::types::DataId;
+use crate::domain::types::{DataId, PostContent, PostTitle};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -8,44 +8,92 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct Post {
     /// Уникальный id сообщения. Допускается `None` при создании экземпляра
-    /// перед сохранением в базу данных. 
-    id: Option<DataId>,
+    /// перед сохранением в базу данных.
+    pub(crate) id: Option<DataId>,
     /// Заголовок сообщения.
-    title: String,
+    pub(crate) title: PostTitle,
     /// Содержание сообщения.
-    content: String,
+    pub(crate) content: PostContent,
     /// Id автора поста, на основе [`UserId`].
-    author_id: DataId,
+    pub(crate) author_id: DataId,
     /// Время создания поста.
     #[serde(with = "chrono::serde::ts_seconds")]
-    created_at: DateTime<Utc>,
+    pub(crate) created_at: DateTime<Utc>,
     /// Время, когда пост был обновлён.
     #[serde(with = "chrono::serde::ts_seconds_option")]
-    updated_at: Option<DateTime<Utc>>,
+    pub(crate) updated_at: Option<DateTime<Utc>>,
 }
 
 impl Post {
     /// Создание экземпляра [`Post`] на основе предоставленных данных.
-    pub(crate) fn new(post_id: Option<DataId>, author_id: DataId, post: &CreatePost) -> Self {
-        let created_at = Utc::now();
+    ///
+    /// Если `created_at` не передано, конструктор самостоятельно создаёт
+    /// временную метку на основе текущего времени UTC.
+    ///
+    /// ## Важно
+    ///
+    /// `created_at` и `updated_at` принимаются "на веру", конструктор
+    /// не проверяет их соотношение (кто раньше). Эта логика должна
+    /// исследоваться у вызывающего.
+    pub(crate) fn new(
+        post_id: Option<DataId>,
+        title: PostTitle,
+        content: PostContent,
+        author_id: DataId,
+        created_at: Option<DateTime<Utc>>,
+        updated_at: Option<DateTime<Utc>>,
+    ) -> Self {
+        let created_at = created_at.unwrap_or_else(Utc::now);
 
         Self {
             id: post_id,
-            title: post.title.clone(),
-            content: post.content.clone(),
+            title,
+            content,
             author_id,
             created_at,
-            updated_at: None,
+            updated_at,
         }
     }
 
+    /// Создать новый экземпляр [`Post`] с помощью [`CreatePost`].
+    ///
+    /// Временная метка проставляется автоматически.
+    pub(crate) fn new_by_create(post: CreatePost, author_id: DataId) -> Self {
+        Post::new(None, post.title, post.content, author_id, None, None)
+    }
+
+    /// Проверяет совпадение автора публикации с ID пользователя.
+    pub(crate) fn is_author(&self, user_id: &DataId) -> bool {
+        self.author_id.eq(user_id)
+    }
+
     /// Обновить экземпляр на основе отредактированных данных.
+    ///
+    /// Автоматически проставляется временная метка внесения изменений.
+    ///
+    /// ## Важно
+    ///
+    /// Исходя из принципа разделения ответственности, метод не реагирует
+    /// на состояние, когда все поля пришли неизменными (`None`). В этом
+    /// случае сохранится исходное состояние, и метка изменения проставляться
+    /// не будет.
     pub(crate) fn update(&mut self, edit_post: &EditPost) {
         let update_at = Utc::now();
+        let mut updated = false;
 
-        self.updated_at = Some(update_at);
-        self.title = edit_post.title.clone();
-        self.content = edit_post.content.clone();
+        if let Some(title) = edit_post.title.clone() {
+            self.title = title;
+            updated = true;
+        }
+
+        if let Some(content) = edit_post.content.clone() {
+            self.content = content;
+            updated = true;
+        }
+
+        if updated {
+            self.updated_at = Some(update_at);
+        }
     }
 }
 
@@ -53,16 +101,34 @@ impl Post {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct CreatePost {
     /// Заголовок поста.
-    title: String,
+    pub(crate) title: PostTitle,
     /// Содержимое поста.
-    content: String,
+    pub(crate) content: PostContent,
 }
 
 /// Dto-структура для редактирования записи (поста).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct EditPost {
     /// Заголовок поста.
-    title: String,
+    pub(crate) title: Option<PostTitle>,
     /// Содержимое поста.
-    content: String,
+    pub(crate) content: Option<PostContent>,
+}
+
+/// Dto-структура query-параметров для извлечения перечня постов.
+#[derive(Clone, Serialize, Deserialize)]
+pub(crate) struct QueryPosts {
+    /// Количество возвращаемых записей.
+    pub(crate) limit: Option<u32>,
+    /// Количество записей, которые необходимо пропустить.
+    pub(crate) offset: Option<u32>,
+}
+
+impl Default for QueryPosts {
+    fn default() -> Self {
+        Self {
+            limit: Some(10),
+            offset: Some(0),
+        }
+    }
 }

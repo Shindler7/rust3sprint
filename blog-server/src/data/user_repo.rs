@@ -1,14 +1,14 @@
 //! Репозиторий пользователей.
 
-use crate::domain::error::DomainError::UserNotFound;
-use crate::domain::error::{RepoErrorMap, SqlxResultExt};
-use crate::domain::types::Username;
 use crate::{
-    domain::{error::DomainError, user::User},
+    domain::{
+        error::{DomainError, RepoErrorMap, SqlxResultExt},
+        types::Username,
+        user::User,
+    },
     repo_pg_pool,
 };
-use sqlx::postgres::PgRow;
-use sqlx::{PgPool, Row};
+use sqlx::{postgres::PgRow, PgPool, Row};
 use tonic::async_trait;
 
 #[async_trait]
@@ -53,11 +53,11 @@ impl UserRepository for UserRepo {
         .fetch_one(&self.pool)
         .await
         .map_repo_err(RepoErrorMap {
-            not_found: UserNotFound,
-            unique_violations: vec![
+            not_found: DomainError::UserNotFound,
+            unique_violations: Some(vec![
                 ("users_username_key", DomainError::UserAlreadyExists),
                 ("users_email_key", DomainError::EmailAlreadyExists),
-            ],
+            ]),
         })?;
 
         Ok(make_user_by_row(&record))
@@ -73,8 +73,8 @@ impl UserRepository for UserRepo {
         .fetch_one(&self.pool)
         .await
         .map_repo_err(RepoErrorMap {
-            not_found: UserNotFound,
-            unique_violations: vec![],
+            not_found: DomainError::UserNotFound,
+            unique_violations: None,
         })?;
 
         Ok(make_user_by_row(&record))
@@ -84,11 +84,11 @@ impl UserRepository for UserRepo {
 /// Поддерживающая функция: создаёт [`User`] на основе предоставленной записи
 /// из базы данных, обёрнутой в [`PgRow`].
 fn make_user_by_row(record: &PgRow) -> User {
-    User {
-        id: record.get("id"),
-        username: record.get("username"),
-        email: record.get("email"),
-        password_hash: record.get("password_hash"),
-        created_at: record.get("created_at"),
-    }
+    User::new(
+        record.get("id"),
+        record.get("username"),
+        record.get("email"),
+        record.get("password_hash"),
+        record.get("created_at"),
+    )
 }

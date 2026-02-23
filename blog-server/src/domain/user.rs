@@ -1,7 +1,8 @@
 //! Доменные модели.
 
-use chrono::{DateTime, Utc};
 use crate::domain::types::{DataId, Email, UserPassword, Username};
+use crate::infrastructure::jwt::Claims;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Структура пользователя.
@@ -17,7 +18,51 @@ pub(crate) struct User {
     /// Хеш пароля пользователя.
     pub password_hash: String,
     /// Время создания пользователя.
-    pub created_at: DateTime<Utc>
+    pub created_at: DateTime<Utc>,
+}
+
+impl User {
+    /// Создать новый экземпляр [`User`] на основе предоставленных данных.
+    ///
+    /// `user_id` и `created_at` могут быть `None`. Если не передано
+    /// `created_at`, временная метка конструктором создаётся самостоятельно,
+    /// по текущему времени UTC.
+    pub(crate) fn new(
+        user_id: Option<DataId>,
+        username: Username,
+        email: Email,
+        pwd_hash: &str,
+        created_at: Option<DateTime<Utc>>,
+    ) -> Self {
+        let created_at = created_at.unwrap_or_else(Utc::now);
+
+        Self {
+            id: user_id,
+            username,
+            email,
+            password_hash: pwd_hash.to_string(),
+            created_at,
+        }
+    }
+
+    /// Создание нового экземпляра [`User`] с помощью [`CreateUser`].
+    ///
+    /// Временная метка создания проставляется автоматически.
+    pub(crate) fn new_by_create(create_user: CreateUser, pwd_hash: &str) -> Self {
+        User::new(None, create_user.username, create_user.email, pwd_hash, None)
+    }
+
+    /// Преобразовать имя пользователя `username` в нижний регистр.
+    pub(crate) fn username_to_lower(mut self) -> Self {
+        self.username = self.username.to_lowercase();
+        self
+    }
+    
+    /// Преобразовать адрес электронной почты в нижний регистр.
+    pub(crate) fn email_to_lower(mut self) -> Self {
+        self.email = self.email.to_lowercase();
+        self
+    }
 }
 
 /// DTO-модель для создания пользователя.
@@ -69,4 +114,24 @@ pub(crate) struct AuthResponse {
     pub(crate) token: String,
     /// DTO-экземпляр пользователя.
     pub(crate) user: UserDto,
+}
+
+/// DTO-структура авторизованного пользователя.
+///
+/// Доступно преобразование из [`Claims`] через `from`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct AuthenticatedUser {
+    /// Id пользователя.
+    pub(crate) id: DataId,
+    /// Имя пользователя (`username`).
+    pub(crate) username: Username,
+}
+
+impl From<Claims> for AuthenticatedUser {
+    fn from(claims: Claims) -> Self {
+        Self {
+            id: claims.user_id,
+            username: claims.username,
+        }
+    }
 }

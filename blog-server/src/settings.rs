@@ -4,6 +4,9 @@ use argon2::{Algorithm, Version};
 use chrono::Duration;
 use std::ops::RangeInclusive;
 
+/// Типизированный заголовок для ответов сервера (`headers`).
+pub(crate) const APP_HEADERS: &str = "App_version";
+
 /// Время задержки после сигнала "стоп" серверам до окончательного останова
 /// (миллисекунды).
 pub(crate) const SLEEP_BEFORE_SHUTDOWN_MS: u64 = 100;
@@ -89,3 +92,9 @@ pub(crate) const JWT_LIFETIME: Duration = Duration::hours(24);
 
 /// Максимальная длина заголовка публикации (поста).
 pub(crate) const POSTS_TITLE_MAX_CHARS: usize = 100;
+
+/// Границы выгрузки публикаций через API.
+pub(crate) const POSTS_LIMIT_RANGE: RangeInclusive<u32> = 1..=100;
+
+/// Максимальное значение `offset` при выгрузке публикаций через API.
+pub(crate) const POSTS_OFFSET_MAX: u32 = 1000;

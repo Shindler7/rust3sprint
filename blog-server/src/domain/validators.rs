@@ -1,8 +1,10 @@
 //! Валидаторы для различных ситуаций.
+
 use crate::settings::{
-    EMAIL_RANGE_LEN_CHARS, PASSWORD_MIN_CHARS, PASSWORD_VALID_SPECIAL_CHARS,
+    EMAIL_RANGE_LEN_CHARS, PASSWORD_MIN_CHARS, PASSWORD_VALID_SPECIAL_CHARS, POSTS_TITLE_MAX_CHARS,
     USERNAME_RANGE_LEN_CHARS,
 };
+use regex::Regex;
 
 /// Является ли переданный `char` допустимым для пароля специальным символом.
 fn is_special_char(c: char) -> bool {
@@ -97,6 +99,62 @@ pub(super) fn validate_username(username: &str) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+const BLACKLIST_WORDS: [&str; 9] = [
+    "дурак",
+    "глупец",
+    "фронтенд",
+    "legacy",
+    "рефакторинг",
+    "техдолг",
+    "политик",
+    "кому нужен ваш Rust",
+    "я не тестировал, но должно работать",
+];
+
+/// Проверить предоставленный текст на наличие слов и фраз в списке запрещённых.
+fn check_in_blacklist(text: &str) -> Result<(), String> {
+    let pattern = BLACKLIST_WORDS
+        .iter()
+        .map(|w| format!(r"\b{}\b", regex::escape(w)))
+        .collect::<Vec<_>>()
+        .join("|");
+
+    let regx = Regex::new(&pattern).map_err(|err| err.to_string())?;
+    if let Some(match_black) = regx.find(text) {
+        return Err(format!(
+            "найдено запрещённое выражение: '{}'",
+            match_black.as_str()
+        ));
+    }
+
+    Ok(())
+}
+
+/// Валидатор заголовка публикаций (постов).
+pub(super) fn validate_title(title: &str) -> Result<(), String> {
+    let trimmed = title.trim();
+    if trimmed.is_empty() || trimmed.len() > POSTS_TITLE_MAX_CHARS {
+        return Err(format!(
+            "допустимая длина заголовка от 1 до {} символов",
+            POSTS_TITLE_MAX_CHARS
+        ));
+    }
+
+    check_in_blacklist(trimmed)?;
+
+    Ok(())
+}
+
+/// Валидатор содержания публикаций (постов).
+pub(super) fn validate_content(content: &str) -> Result<(), String> {
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        return Err("публикация должна содержать текст".to_string());
+    }
+
+    check_in_blacklist(trimmed)
 }
 
 #[cfg(test)]
@@ -208,5 +266,106 @@ mod tests {
         let min = *USERNAME_RANGE_LEN_CHARS.start();
         let username = format!("a{}", "b".repeat(min.saturating_sub(1)));
         assert!(validate_username(&username).is_ok());
+    }
+
+    #[test]
+    fn validate_title_empty() {
+        let err = validate_title("").unwrap_err();
+        assert!(err.contains(&POSTS_TITLE_MAX_CHARS.to_string()));
+    }
+
+    #[test]
+    fn validate_title_only_whitespace() {
+        let err = validate_title("   ").unwrap_err();
+        assert!(err.contains(&POSTS_TITLE_MAX_CHARS.to_string()));
+    }
+
+    #[test]
+    fn validate_title_too_long() {
+        let title = "a".repeat(POSTS_TITLE_MAX_CHARS + 1);
+        let err = validate_title(&title).unwrap_err();
+        assert!(err.contains(&POSTS_TITLE_MAX_CHARS.to_string()));
+    }
+
+    #[test]
+    fn validate_title_exactly_max_length() {
+        let title = "a".repeat(POSTS_TITLE_MAX_CHARS);
+        assert!(validate_title(&title).is_ok());
+    }
+
+    #[test]
+    fn validate_title_minimal_length() {
+        let title = "A";
+        assert!(validate_title(title).is_ok());
+    }
+
+    #[test]
+    fn validate_title_with_blacklist_word() {
+        for word in BLACKLIST_WORDS.iter() {
+            let title = format!("Заголовок с запрещённым словом: {}", word);
+            let err = validate_title(&title);
+            assert!(err.is_err());
+        }
+    }
+
+    #[test]
+    fn validate_title_with_partial_blacklist_match() {
+        // Проверяем, что частичные совпадения не срабатывают (из-за \b в regex)
+        let safe_title = "дуракк"; // не должно считаться совпадением с "дурак"
+        assert!(validate_title(safe_title).is_ok());
+    }
+
+    #[test]
+    fn validate_title_ok() {
+        let title = "Корректный заголовок без запрещённых слов";
+        assert!(validate_title(title).is_ok());
+    }
+
+    #[test]
+    fn validate_content_empty() {
+        let err = validate_content("").unwrap_err();
+        assert_eq!(err, "публикация должна содержать текст");
+    }
+
+    #[test]
+    fn validate_content_only_whitespace() {
+        let err = validate_content("   ").unwrap_err();
+        assert_eq!(err, "публикация должна содержать текст");
+    }
+
+    #[test]
+    fn validate_content_with_blacklist_word() {
+        for word in BLACKLIST_WORDS.iter() {
+            let content = format!("Текст публикации, содержащий запрещённое слово: {}", word);
+            let err = validate_content(&content).unwrap_err();
+            assert!(err.contains("найдено запрещённое выражение"));
+        }
+    }
+
+    #[test]
+    fn validate_content_with_multiple_blacklist_words() {
+        let content = "Здесь есть дурак и глупец одновременно";
+        let err = validate_content(content).unwrap_err();
+        assert!(err.contains("найдено запрещённое выражение"));
+    }
+
+    #[test]
+    fn validate_content_partial_match_safe() {
+        // Частичные совпадения не должны срабатывать
+        let safe_content = "Это не дуракк, а умный человек";
+        assert!(validate_content(safe_content).is_ok());
+    }
+
+    #[test]
+    fn validate_content_ok() {
+        let content = "Содержание публикации с нормальным текстом без запрещённых выражений";
+        assert!(validate_content(content).is_ok());
+    }
+
+    #[test]
+    fn validate_content_long_text() {
+        // Длинный текст без запрещённых слов должен проходить
+        let long_content = "a ".repeat(1000) + "нормальный текст";
+        assert!(validate_content(&long_content).is_ok());
     }
 }
