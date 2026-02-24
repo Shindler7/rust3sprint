@@ -20,6 +20,7 @@ service BlogService {
 message User {
   int64 id = 1;
   string username = 2;
+  string email = 3;
 }
 
 // Запрос на регистрацию пользователя.
@@ -38,6 +39,7 @@ message LoginRequest {
 // Успешный ответ при регистрации и авторизации.
 message AuthResponse {
   User user = 1;
+  string token = 2;
 }
 
 // ** Posts **

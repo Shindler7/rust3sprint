@@ -1,19 +1,9 @@
 //! Поддерживающие утилиты и инструменты для роутеров.
 
 use crate::{
-    domain::{error::DomainError, user::User},
-    infrastructure::jwt::JwtService,
+    errors::DomainError,
     settings::{POSTS_LIMIT_RANGE, POSTS_OFFSET_MAX},
 };
-
-/// Поддерживающая функция. Получает JWT-токен для пользователя.
-pub(super) fn get_jwt_token(user: &User, jwt_service: &JwtService) -> Result<String, DomainError> {
-    let user_id = user
-        .id
-        .as_ref()
-        .ok_or_else(|| DomainError::server_err("Пользователь не имеет ID"))?;
-    Ok(jwt_service.generate_token(user_id, &user.username)?)
-}
 
 /// Быстрая проверка валидности значений `limit` и `offset` в query-параметрах
 /// для выгрузки списка публикаций и преобразование значений в ожидаемые.

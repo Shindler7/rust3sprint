@@ -1,7 +1,8 @@
 //! Новые типы моделей для domain.
 
 use crate::{
-    domain::{error::DomainError, validators::*},
+    domain::validators::*,
+    errors::DomainError,
     settings::{ArgonConfig, ARGON_ALGORITHM, ARGON_ALGORITHM_VERSION},
     validated_newtype,
 };

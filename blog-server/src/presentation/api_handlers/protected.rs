@@ -4,11 +4,11 @@ use crate::{
     application::blog_service::BlogService,
     data::post_repo::PostRepo,
     domain::{
-        error::DomainError,
         post::{CreatePost, EditPost},
         types::DataId,
         user::AuthenticatedUser,
     },
+    errors::DomainError,
 };
 use actix_web::{
     delete, post, put, web, web::{Json, ReqData}, HttpResponse, Responder,

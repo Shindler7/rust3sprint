@@ -9,6 +9,8 @@ fn main() -> Result<(), Box<dyn StdError>> {
         .compile_protos(&["proto/blog.proto"], &["proto"])?;
 
     println!("cargo:rerun-if-changed=proto/blog.proto");
+    println!("cargo:rerun-if-changed=proto/");
+    println!("cargo:rerun-if-changed=build.rs");
 
     Ok(())
 }

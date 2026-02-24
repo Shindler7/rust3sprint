@@ -3,10 +3,8 @@
 use crate::domain::types::Username;
 use crate::{
     data::user_repo::UserRepository,
-    domain::{
-        error::DomainError,
-        user::{CreateUser, User},
-    },
+    domain::user::{CreateUser, User},
+    errors::{DomainError, RepoErrorMap, SqlxResultExt},
 };
 use std::sync::Arc;
 use tracing::{info, instrument};
@@ -44,7 +42,14 @@ where
             .username_to_lower()
             .email_to_lower();
 
-        let user = self.repo.create(&user).await?;
+        let user = self.repo.create(&user).await.map_repo_err(RepoErrorMap {
+            not_found: DomainError::UserNotFound,
+            unique_violations: Some(vec![
+                ("users_username_key", DomainError::UserAlreadyExists),
+                ("users_email_key", DomainError::EmailAlreadyExists),
+            ]),
+        })?;
+
         info!("Создан новый пользователь: {}", user.username);
 
         Ok(user)
@@ -54,6 +59,12 @@ where
     #[instrument(skip(self), level = "debug")]
     pub(crate) async fn get_user(&self, username: &Username) -> Result<User, DomainError> {
         let username = username.to_lowercase();
-        self.repo.get_by_username(&username).await
+        self.repo
+            .get_by_username(&username)
+            .await
+            .map_repo_err(RepoErrorMap {
+                not_found: DomainError::UserNotFound,
+                unique_violations: None,
+            })
     }
 }

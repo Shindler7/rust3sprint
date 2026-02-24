@@ -1,22 +1,18 @@
 //! Репозиторий пользователей.
 
 use crate::{
-    domain::{
-        error::{DomainError, RepoErrorMap, SqlxResultExt},
-        types::Username,
-        user::User,
-    },
+    domain::{types::Username, user::User},
     repo_pg_pool,
 };
-use sqlx::{postgres::PgRow, PgPool, Row};
+use sqlx::{postgres::PgRow, Error as SqlxError, PgPool, Row};
 use tonic::async_trait;
 
 #[async_trait]
 pub(crate) trait UserRepository: Send + Sync {
     /// Создать пользователя.
-    async fn create(&self, user: &User) -> Result<User, DomainError>;
+    async fn create(&self, user: &User) -> Result<User, SqlxError>;
     /// Предоставить экземпляр [`User`] по имени пользователя.
-    async fn get_by_username(&self, username: &Username) -> Result<User, DomainError>;
+    async fn get_by_username(&self, username: &Username) -> Result<User, SqlxError>;
 }
 
 repo_pg_pool!(
@@ -30,7 +26,7 @@ impl UserRepository for UserRepo {
     /// Создать нового пользователя на основе объекта [`User`]. При успехе
     /// будет возвращён обновлённый объект пользователя, с полями на основе
     /// данных в Базе.
-    async fn create(&self, user: &User) -> Result<User, DomainError> {
+    async fn create(&self, user: &User) -> Result<User, SqlxError> {
         let User {
             username,
             email,
@@ -51,19 +47,12 @@ impl UserRepository for UserRepo {
         .bind(password_hash)
         .bind(created_at)
         .fetch_one(&self.pool)
-        .await
-        .map_repo_err(RepoErrorMap {
-            not_found: DomainError::UserNotFound,
-            unique_violations: Some(vec![
-                ("users_username_key", DomainError::UserAlreadyExists),
-                ("users_email_key", DomainError::EmailAlreadyExists),
-            ]),
-        })?;
+        .await?;
 
         Ok(make_user_by_row(&record))
     }
 
-    async fn get_by_username(&self, username: &Username) -> Result<User, DomainError> {
+    async fn get_by_username(&self, username: &Username) -> Result<User, SqlxError> {
         let record = sqlx::query(
             r#"
             SELECT id, username, email, password_hash, created_at FROM users WHERE username = $1
@@ -71,11 +60,7 @@ impl UserRepository for UserRepo {
         )
         .bind(username)
         .fetch_one(&self.pool)
-        .await
-        .map_repo_err(RepoErrorMap {
-            not_found: DomainError::UserNotFound,
-            unique_violations: None,
-        })?;
+        .await?;
 
         Ok(make_user_by_row(&record))
     }

@@ -23,6 +23,7 @@ mod infrastructure;
 mod presentation;
 mod server;
 mod settings;
+pub mod errors;
 
 #[actix_web::main]
 async fn main() -> AnyhowResult<()> {
@@ -46,6 +47,7 @@ async fn main() -> AnyhowResult<()> {
         app_services.clone(),
         tx.subscribe(),
     ));
+    
     let grpc = spawn(run_blog_grpc(cfg, app_services, tx.subscribe()));
 
     tokio::signal::ctrl_c()

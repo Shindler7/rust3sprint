@@ -3,7 +3,7 @@
 use crate::{
     application::AppServices,
     infrastructure::config::BlogConfig,
-    presentation::{api_handlers, grpc_service::BlogGrpcService, middleware},
+    presentation::{api_handlers, grpc::api_services::BlogGrpcService, middleware},
 };
 use actix_cors::Cors;
 use actix_web::{
@@ -77,7 +77,9 @@ pub(crate) async fn run_blog_grpc(
 ) -> AnyhowResult<()> {
     info!("Запуск gPRC...");
 
-    let service = BlogGrpcService::new(app_services);
+    let jwt_service = Arc::new(cfg.security.jwt_service.clone());
+
+    let service = BlogGrpcService::new(app_services, jwt_service);
 
     Server::builder()
         .add_service(BlogServiceServer::new(service))

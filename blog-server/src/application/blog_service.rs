@@ -3,13 +3,13 @@
 use crate::{
     data::post_repo::PostRepository,
     domain::{
-        error::{DomainError, RepoErrorMap, SqlxResultExt},
         post::{CreatePost, EditPost, Post},
         types::DataId,
     },
+    errors::{DomainError, RepoErrorMap, SqlxResultExt},
 };
 use std::sync::Arc;
-use tracing::{info, instrument};
+use tracing::{error, info, instrument};
 
 /// Сервисы для взаимодействия с записями блога.
 pub(crate) struct BlogService<R: PostRepository + 'static> {
@@ -49,7 +49,15 @@ where
         author: &DataId,
     ) -> Result<Post, DomainError> {
         let post = Post::new_by_create(new_post.clone(), author.clone());
-        let post = self.repo.create(&post).await?;
+        let post = self.repo.create(&post).await.map_err(|err| {
+            error!(
+                error=%err,
+                title=%new_post.title,
+                author=%author,
+                "Ошибка создания записи в базе данных"
+            );
+            DomainError::server_err(err.to_string())
+        })?;
 
         info!(
             title = %post.title,
@@ -67,7 +75,13 @@ where
         limit: &i32,
         offset: &i32,
     ) -> Result<Vec<Post>, DomainError> {
-        let posts = self.repo.list(*limit, *offset).await?;
+        let posts = self.repo.list(*limit, *offset).await.map_err(|err| {
+            error!(
+                error=%err,
+                "Не удалось получить из БД список постов"
+            );
+            DomainError::server_err(err.to_string())
+        })?;
 
         Ok(posts)
     }
@@ -90,7 +104,15 @@ where
         }
 
         post.update(edit_post);
-        self.repo.update(&post).await?;
+        self.repo.update(&post).await.map_err(|err| {
+            error!(
+                error=%err,
+                post_id=%post_id,
+                user_id=%user_id,
+                "Ошибка обновления публикации"
+            );
+            DomainError::server_err(err.to_string())
+        })?;
 
         Ok(post)
     }

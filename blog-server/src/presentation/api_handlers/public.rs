@@ -1,17 +1,19 @@
 //! Публичные роутеры HTTP-сервера.
 
-use crate::presentation::api_handlers::tools::valid_query_posts_params;
 use crate::{
     application::{auth_service::AuthService, blog_service::BlogService},
     data::{post_repo::PostRepo, user_repo::UserRepo},
     domain::{
-        error::DomainError,
         post::QueryPosts,
         types::DataId,
         user::{AuthResponse, CreateUser, LoginUser},
     },
+    errors::DomainError,
     infrastructure::config::BlogConfig,
-    presentation::api_handlers::tools,
+    presentation::{
+        api_handlers::tools::valid_query_posts_params,
+        tools::{get_jwt_token, verified_user_password},
+    },
 };
 use actix_web::{get, post, web, HttpResponse, Responder, Result as ActixResult};
 use serde_json::json;
@@ -48,7 +50,7 @@ async fn register(
             "Ошибка регистрации {}", create_user.username)
         })?;
 
-    let token = tools::get_jwt_token(&user, &server_cfg.security.jwt_service)?;
+    let token = get_jwt_token(&user, &server_cfg.security.jwt_service)?;
 
     Ok(HttpResponse::Created().json(AuthResponse {
         token,
@@ -76,16 +78,9 @@ async fn login(
                 "Пользователь не найден: {}", login_user.username)
         })?;
 
-    let verified_hash = login_user
-        .password
-        .verify_hash(&user.password_hash)
-        .map_err(|err| DomainError::invalid_credentials(format!("ошибка хеширования: {err}")))?;
+    verified_user_password(&login_user, &user.password_hash)?;
 
-    if !verified_hash {
-        return Err(DomainError::invalid_password(""));
-    }
-
-    let token = tools::get_jwt_token(&user, &server_cfg.security.jwt_service)?;
+    let token = get_jwt_token(&user, &server_cfg.security.jwt_service)?;
 
     Ok(HttpResponse::Ok().json(AuthResponse {
         token,

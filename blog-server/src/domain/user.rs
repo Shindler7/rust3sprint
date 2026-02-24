@@ -1,7 +1,9 @@
 //! Доменные модели.
 
-use crate::domain::types::{DataId, Email, UserPassword, Username};
-use crate::infrastructure::jwt::Claims;
+use crate::{
+    domain::types::{DataId, Email, UserPassword, Username},
+    infrastructure::jwt::Claims,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -49,7 +51,13 @@ impl User {
     ///
     /// Временная метка создания проставляется автоматически.
     pub(crate) fn new_by_create(create_user: CreateUser, pwd_hash: &str) -> Self {
-        User::new(None, create_user.username, create_user.email, pwd_hash, None)
+        User::new(
+            None,
+            create_user.username,
+            create_user.email,
+            pwd_hash,
+            None,
+        )
     }
 
     /// Преобразовать имя пользователя `username` в нижний регистр.
@@ -57,7 +65,7 @@ impl User {
         self.username = self.username.to_lowercase();
         self
     }
-    
+
     /// Преобразовать адрес электронной почты в нижний регистр.
     pub(crate) fn email_to_lower(mut self) -> Self {
         self.email = self.email.to_lowercase();
