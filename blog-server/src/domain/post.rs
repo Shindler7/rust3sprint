@@ -115,6 +115,21 @@ pub(crate) struct EditPost {
     pub(crate) content: Option<PostContent>,
 }
 
+/// Команда обновления поста.
+pub(crate) struct EditPostCommand {
+    /// Идентификатор поста.
+    pub(crate) post_id: DataId,
+    /// Изменяемые поля.
+    pub(crate) edit_post: EditPost,
+}
+
+impl EditPostCommand {
+    /// Создать экземпляр команды на редактирование публикации.
+    pub(crate) fn new(post_id: DataId, edit_post: EditPost) -> Self {
+        Self { post_id, edit_post }
+    }
+}
+
 /// Dto-структура query-параметров для извлечения перечня постов.
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct QueryPosts {

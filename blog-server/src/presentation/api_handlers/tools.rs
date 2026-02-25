@@ -2,32 +2,15 @@
 
 use crate::{
     errors::DomainError,
-    settings::{POSTS_LIMIT_RANGE, POSTS_OFFSET_MAX},
+    presentation::tools::validate_list_params,
+    settings::POSTS_OFFSET_MAX,
 };
 
 /// Быстрая проверка валидности значений `limit` и `offset` в query-параметрах
 /// для выгрузки списка публикаций и преобразование значений в ожидаемые.
 ///
 /// Например, `u32` будут преобразованы в `i32`, поддерживаемые `PostgresSQL`.  
-pub(super) fn valid_query_posts_params(
-    limit: &u32,
-    offset: &u32,
-) -> Result<(i32, i32), DomainError> {
-    if !POSTS_LIMIT_RANGE.contains(limit) {
-        return Err(DomainError::api_error(format!(
-            "значение `limit` должно быть больше {}, но менее {}",
-            POSTS_LIMIT_RANGE.start(),
-            POSTS_LIMIT_RANGE.end()
-        )));
-    }
-
-    if *offset > POSTS_OFFSET_MAX {
-        return Err(DomainError::api_error(format!(
-            "допускаемое значение 'offset' не более {}",
-            POSTS_OFFSET_MAX
-        )));
-    }
-
+pub(super) fn valid_query_posts_params(limit: u32, offset: u32) -> Result<(i32, i32), DomainError> {
     /// Вспомогательная функция для конвертации u32 в i32 с проверкой.
     fn to_i32(value: u32, param_name: &str) -> Result<i32, DomainError> {
         value.try_into().map_err(|_| {
@@ -41,8 +24,10 @@ pub(super) fn valid_query_posts_params(
         })
     }
 
-    let limit_i32 = to_i32(*limit, "limit")?;
-    let offset_i32 = to_i32(*offset, "offset")?;
+    let limit_i32 = to_i32(limit, "limit")?;
+    let offset_i32 = to_i32(offset, "offset")?;
+
+    validate_list_params(limit_i32, offset_i32)?;
 
     Ok((limit_i32, offset_i32))
 }

@@ -124,6 +124,16 @@ pub(crate) struct AuthResponse {
     pub(crate) user: UserDto,
 }
 
+impl AuthResponse {
+    /// Создать экземпляр ответа пользователя.
+    pub(crate) fn new(token: impl Into<String>, user: UserDto) -> Self {
+        Self {
+            token: token.into(),
+            user,
+        }
+    }
+}
+
 /// DTO-структура авторизованного пользователя.
 ///
 /// Доступно преобразование из [`Claims`] через `from`.

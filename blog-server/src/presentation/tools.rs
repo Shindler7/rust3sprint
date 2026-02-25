@@ -1,13 +1,14 @@
 //! Общие утилиты для presentation.
 
 use crate::{
-    domain::user::{LoginUser, User},
+    domain::user::{LoginUser, UserDto},
     errors::DomainError,
     infrastructure::jwt::JwtService,
+    settings::{POSTS_LIMIT_RANGE, POSTS_OFFSET_MAX}
 };
 
 /// Поддерживающая функция. Получает JWT-токен для пользователя.
-pub(crate) fn get_jwt_token(user: &User, jwt_service: &JwtService) -> Result<String, DomainError> {
+pub(crate) fn get_jwt_token(user: &UserDto, jwt_service: &JwtService) -> Result<String, DomainError> {
     let user_id = user
         .id
         .as_ref()
@@ -30,5 +31,26 @@ pub(crate) fn verified_user_password(
         return Err(DomainError::invalid_password(""));
     }
 
+    Ok(())
+}
+
+/// Проверить валидность значений, применяемых для выгрузки списка публикаций.
+/// Например, `limit` и `offset` в `QueryPosts`.
+pub(crate) fn validate_list_params(limit: i32, offset: i32) -> Result<(), DomainError> {
+    if !POSTS_LIMIT_RANGE.contains(&limit) {
+        return Err(DomainError::api_error(format!(
+            "значение `limit` должно быть больше {}, но менее {}",
+            POSTS_LIMIT_RANGE.start(),
+            POSTS_LIMIT_RANGE.end()
+        )));
+    }
+
+    if offset > POSTS_OFFSET_MAX {
+        return Err(DomainError::api_error(format!(
+            "допускаемое значение 'offset' не более {}",
+            POSTS_OFFSET_MAX
+        )));
+    }
+    
     Ok(())
 }

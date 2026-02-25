@@ -1,13 +1,12 @@
 //! Конвертеры типов из HTTP сервера и gRPC.
 
 use crate::{
-    domain::{
-        types::{Email, UserPassword, Username},
-        user::{CreateUser, LoginUser, User},
-    },
+    domain::user::{AuthResponse, CreateUser, LoginUser, UserDto},
     errors::DomainError,
 };
-use proto_crate::proto_blog::{LoginRequest, RegisterRequest, User as ProtoUser};
+use proto_crate::proto_blog::{
+    AuthResponse as ProtoAuthResponse, LoginRequest, RegisterRequest, User as ProtoUser,
+};
 use tonic::Status;
 use tracing::error;
 
@@ -34,10 +33,10 @@ impl TryFrom<LoginRequest> for LoginUser {
     }
 }
 
-impl TryFrom<User> for ProtoUser {
+impl TryFrom<UserDto> for ProtoUser {
     type Error = Status;
 
-    fn try_from(user: User) -> Result<Self, Self::Error> {
+    fn try_from(user: UserDto) -> Result<Self, Self::Error> {
         let id: i64 = user
             .id
             .ok_or_else(|| {
@@ -53,6 +52,18 @@ impl TryFrom<User> for ProtoUser {
             id,
             username: user.username.to_string(),
             email: user.email.to_string(),
+        })
+    }
+}
+
+impl TryFrom<AuthResponse> for ProtoAuthResponse {
+    type Error = Status;
+    fn try_from(ar: AuthResponse) -> Result<Self, Self::Error> {
+        let proto_user: ProtoUser = ar.user.try_into()?;
+
+        Ok(Self {
+            token: ar.token,
+            user: Some(proto_user),
         })
     }
 }

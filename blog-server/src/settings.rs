@@ -94,7 +94,7 @@ pub(crate) const JWT_LIFETIME: Duration = Duration::hours(24);
 pub(crate) const POSTS_TITLE_MAX_CHARS: usize = 100;
 
 /// Границы выгрузки публикаций через API.
-pub(crate) const POSTS_LIMIT_RANGE: RangeInclusive<u32> = 1..=100;
+pub(crate) const POSTS_LIMIT_RANGE: RangeInclusive<i32> = 1..=100;
 
 /// Максимальное значение `offset` при выгрузке публикаций через API.
-pub(crate) const POSTS_OFFSET_MAX: u32 = 1000;
+pub(crate) const POSTS_OFFSET_MAX: i32 = 1000;

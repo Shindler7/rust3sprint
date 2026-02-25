@@ -1,4 +1,4 @@
 //! Адаптеры слоёв представления.
 
-mod user;
 mod post;
+mod user;

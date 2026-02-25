@@ -4,7 +4,7 @@ use crate::{
     application::blog_service::BlogService,
     data::post_repo::PostRepo,
     domain::{
-        post::{CreatePost, EditPost},
+        post::{CreatePost, EditPost, EditPostCommand},
         types::DataId,
         user::AuthenticatedUser,
     },
@@ -55,16 +55,16 @@ async fn update_post(
     blog_service: web::Data<Arc<BlogService<PostRepo>>>,
 ) -> ActixResult<impl Responder, DomainError> {
     let user = user.into_inner();
-    let edition_post = body.into_inner();
-    let post_id = post_id.into_inner();
+
+    let edit_command = EditPostCommand::new(post_id.into_inner(), body.into_inner());
 
     let post = blog_service
-        .update_post(&post_id, &edition_post, &user.id)
+        .update_post(&edit_command, &user.id)
         .await
         .inspect_err(|err| {
             error!(
                 error = %err,
-                post_id = %post_id,
+                post_id = %edit_command.post_id,
                 user_id = %user.id,
                 "Неудачная попытка внесения изменений в публикацию"
             )

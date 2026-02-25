@@ -6,12 +6,7 @@ use crate::{
     presentation::{api_handlers, grpc::api_services::BlogGrpcService, middleware},
 };
 use actix_cors::Cors;
-use actix_web::{
-    http::header::{AUTHORIZATION, CONTENT_TYPE}, middleware::Logger, web,
-    App,
-    HttpResponse,
-    HttpServer,
-};
+use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer};
 use anyhow::{Context, Result as AnyhowResult};
 use proto_crate::proto_blog::blog_service_server::BlogServiceServer;
 use std::sync::Arc;
@@ -35,7 +30,7 @@ pub(crate) async fn run_blog_server(
         let cors = Cors::default()
             .allowed_origin(&cfg_clone.security.cors_url)
             .allowed_methods(vec!["GET", "POST", "OPTIONS"])
-            .allowed_headers(vec![CONTENT_TYPE, AUTHORIZATION])
+            .allow_any_header()
             .supports_credentials()
             .max_age(cfg_clone.security.cors_max_age);
 

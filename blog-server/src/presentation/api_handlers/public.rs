@@ -6,7 +6,7 @@ use crate::{
     domain::{
         post::QueryPosts,
         types::DataId,
-        user::{AuthResponse, CreateUser, LoginUser},
+        user::{AuthResponse, CreateUser, LoginUser, UserDto},
     },
     errors::DomainError,
     infrastructure::config::BlogConfig,
@@ -50,12 +50,11 @@ async fn register(
             "Ошибка регистрации {}", create_user.username)
         })?;
 
-    let token = get_jwt_token(&user, &server_cfg.security.jwt_service)?;
+    let user_dto: UserDto = user.into();
+    let token = get_jwt_token(&user_dto, &server_cfg.security.jwt_service)?;
+    let auth_response = AuthResponse::new(token, user_dto);
 
-    Ok(HttpResponse::Created().json(AuthResponse {
-        token,
-        user: user.into(),
-    }))
+    Ok(HttpResponse::Created().json(auth_response))
 }
 
 /// Авторизация пользователя.
@@ -80,12 +79,11 @@ async fn login(
 
     verified_user_password(&login_user, &user.password_hash)?;
 
-    let token = get_jwt_token(&user, &server_cfg.security.jwt_service)?;
+    let user_dto: UserDto = user.into();
+    let token = get_jwt_token(&user_dto, &server_cfg.security.jwt_service)?;
+    let auth_response = AuthResponse::new(token, user_dto);
 
-    Ok(HttpResponse::Ok().json(AuthResponse {
-        token,
-        user: user.into(),
-    }))
+    Ok(HttpResponse::Ok().json(auth_response))
 }
 
 /// Список постов (публичный, с пагинацией).
@@ -99,9 +97,9 @@ async fn get_posts(
 ) -> ActixResult<impl Responder, DomainError> {
     let limit = query.limit.unwrap_or_default();
     let offset = query.offset.unwrap_or_default();
-    let (limit_i32, offset_i32) = valid_query_posts_params(&limit, &offset)?;
+    let (limit_i32, offset_i32) = valid_query_posts_params(limit, offset)?;
 
-    let posts = blog_service.list_posts(&limit_i32, &offset_i32).await?;
+    let posts = blog_service.list_posts(limit_i32, offset_i32).await?;
 
     Ok(HttpResponse::Ok().json(json!({
         "posts": posts,

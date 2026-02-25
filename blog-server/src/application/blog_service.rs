@@ -3,7 +3,7 @@
 use crate::{
     data::post_repo::PostRepository,
     domain::{
-        post::{CreatePost, EditPost, Post},
+        post::{CreatePost, EditPostCommand, Post},
         types::DataId,
     },
     errors::{DomainError, RepoErrorMap, SqlxResultExt},
@@ -72,10 +72,10 @@ where
     #[instrument(skip(self), level = "debug")]
     pub(crate) async fn list_posts(
         &self,
-        limit: &i32,
-        offset: &i32,
+        limit: i32,
+        offset: i32,
     ) -> Result<Vec<Post>, DomainError> {
-        let posts = self.repo.list(*limit, *offset).await.map_err(|err| {
+        let posts = self.repo.list(limit, offset).await.map_err(|err| {
             error!(
                 error=%err,
                 "Не удалось получить из БД список постов"
@@ -90,24 +90,23 @@ where
     ///
     /// Проводится проверка, что автор публикации совпадает с авторизованным
     /// пользователем.
-    #[instrument(skip(self, edit_post), level = "debug", fields(post_id=%post_id, user_id=%user_id))]
+    #[instrument(skip(self, edit_command), level = "debug", fields(post_id=%edit_command.post_id, user_id=%user_id))]
     pub(crate) async fn update_post(
         &self,
-        post_id: &DataId,
-        edit_post: &EditPost,
+        edit_command: &EditPostCommand,
         user_id: &DataId,
     ) -> Result<Post, DomainError> {
-        let mut post = self.get_post(post_id).await?;
+        let mut post = self.get_post(&edit_command.post_id).await?;
 
         if !post.is_author(user_id) {
             return Err(DomainError::Forbidden);
         }
 
-        post.update(edit_post);
+        post.update(&edit_command.edit_post);
         self.repo.update(&post).await.map_err(|err| {
             error!(
                 error=%err,
-                post_id=%post_id,
+                post_id=%edit_command.post_id,
                 user_id=%user_id,
                 "Ошибка обновления публикации"
             );
