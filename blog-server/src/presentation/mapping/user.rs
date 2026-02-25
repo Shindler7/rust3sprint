@@ -16,9 +16,9 @@ impl TryFrom<RegisterRequest> for CreateUser {
 
     fn try_from(r: RegisterRequest) -> Result<Self, Self::Error> {
         Ok(Self {
-            username: Username::try_from(r.username)?,
-            email: Email::try_from(r.email)?,
-            password: UserPassword::try_from(r.password)?,
+            username: r.username.try_into()?,
+            email: r.email.try_into()?,
+            password: r.password.try_into()?,
         })
     }
 }
