@@ -103,7 +103,7 @@ impl TraitBlogService for BlogGrpcService {
         &self,
         request: Request<CreatePostRequest>,
     ) -> Result<Response<PostResponse>, Status> {
-        let auth_user = get_auth_user(&request.metadata(), self.jwt_service.clone())?;
+        let auth_user = get_auth_user(request.metadata(), self.jwt_service.clone())?;
         let create_post = CreatePost::try_from(request.into_inner())?;
 
         let post = self
@@ -153,7 +153,7 @@ impl TraitBlogService for BlogGrpcService {
         &self,
         request: Request<UpdatePostRequest>,
     ) -> Result<Response<PostResponse>, Status> {
-        let auth_user = get_auth_user(&request.metadata(), self.jwt_service.clone())?;
+        let auth_user = get_auth_user(request.metadata(), self.jwt_service.clone())?;
         let edit_command = EditPostCommand::try_from(request.into_inner())?;
 
         let post = self
@@ -180,8 +180,8 @@ impl TraitBlogService for BlogGrpcService {
         &self,
         request: Request<DeletePostRequest>,
     ) -> Result<Response<DeletePostResponse>, Status> {
-        let auth_user = get_auth_user(&request.metadata(), self.jwt_service.clone())?;
-        let user_id: DataId = auth_user.id.into();
+        let auth_user = get_auth_user(request.metadata(), self.jwt_service.clone())?;
+        let user_id: DataId = auth_user.id;
         let post_id: DataId = request.into_inner().id.into();
 
         self.post_service
@@ -216,6 +216,13 @@ impl TraitBlogService for BlogGrpcService {
             .map(|p| p.try_into())
             .collect::<Result<_, _>>()?;
 
-        Ok(Response::new(ListPostsResponse { posts: grpc_posts }))
+        let len_posts = grpc_posts.len() as i32;
+
+        Ok(Response::new(ListPostsResponse {
+            posts: grpc_posts,
+            total: len_posts,
+            limit: list_posts.limit,
+            offset: list_posts.offset,
+        }))
     }
 }

@@ -19,7 +19,7 @@ use crate::{
     tools::str_to_url,
 };
 pub use error::BlogClientError;
-use proto_crate::proto_blog::Post;
+use proto_crate::proto_blog::{ListPostsResponse, Post};
 use reqwest::Url;
 
 /// Доступный транспорт для запросов к API.
@@ -91,19 +91,45 @@ pub struct BlogClient {
 
 impl BlogClient {
     /// Создать новый клиент для взаимодействия с API.
-    pub fn new(transport: Transport) -> Self {
+    ///
+    /// Клиент предоставляет HTTP и gRPC транспорты для взаимодействия
+    /// с сервером.
+    ///
+    /// ## Пример
+    ///
+    /// ```
+    /// use blog_client::{Transport, BlogClient};
+    ///
+    /// let server_url = "http:127.0.0.1:8080";
+    /// let transport = Transport::http(server_url).unwrap();
+    ///
+    /// let client = BlogClient::new(transport).unwrap();
+    /// let result = client.list_posts(10, 0);
+    /// ```
+    ///
+    /// ## Ошибки
+    ///
+    /// При заказе HTTP-транспорта может возникнуть ошибка: если не удалось
+    /// инициализировать TLS-бэкенд (например, `rustls` или `native-tls`),
+    /// либо конструктору HTTP-клиента не удаётся загрузить системные настройки.
+    pub fn new(transport: Transport) -> Result<Self, BlogClientError> {
         let url = transport.url();
         let (http_client, grpc_client) = match &transport {
-            Transport::Http(_) => (Some(HttpClient::new(url)), None),
+            Transport::Http(_) => (
+                Some(HttpClient::new(url).map_err(|err| {
+                    BlogClientError::client_error(format!("ошибка создания HTTP-клиента ({err})"))
+                })?),
+                None,
+            ),
             Transport::Grpc(_) => (None, Some(GrpcClient::new(url))),
         };
 
-        Self {
+        Ok(Self {
             transport,
             http_client,
             grpc_client,
             token: None,
-        }
+        })
     }
 
     /// Добавить JWT-токен клиенту.
@@ -200,8 +226,21 @@ impl BlogClient {
         self.transport().delete_post(post_id, token).await
     }
 
-    /// Получение списка постов с пагинацией.
-    pub async fn list_posts(&self) -> Result<Vec<Post>, BlogClientError> {
-        self.transport().list_posts().await
+    /// Просмотр публикаций с пагинацией.
+    ///
+    /// ## Args
+    ///
+    /// - `limit` — количество возвращаемых записей (опционально)
+    /// - `offset` — количество записей для пропуска (опционально)
+    ///
+    /// Сервер может устанавливать ограничения по значениям. Если значения
+    /// не заданы, сервер может использовать собственные по умолчанию, либо
+    /// вернуть ошибку. Рекомендуется устанавливать значения.
+    pub async fn list_posts(
+        &self,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<ListPostsResponse, BlogClientError> {
+        self.transport().list_posts(limit, offset).await
     }
 }

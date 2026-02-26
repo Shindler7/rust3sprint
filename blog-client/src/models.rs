@@ -1,11 +1,12 @@
 //! Клиентские типы и модели для обработки информации.
 
-use std::fmt::{Display, Debug};
 use crate::config::DISPLAY_TOKEN_CHARS;
-use proto_crate::proto_blog::User;
+use proto_crate::proto_blog::{AuthResponse as ProtoAuthResponse, User};
+use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display};
 
 /// Новый тип для хранения токена.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Token(String);
 
 impl Display for Token {
@@ -22,11 +23,27 @@ impl Debug for Token {
     }
 }
 
+impl Token {
+    /// Предоставить токен в формате "Bearer <Token>".
+    pub(crate) fn bearer(&self) -> String {
+        format!("Bearer {}", self.0)
+    }
+}
+
 /// Успешный ответ при регистрации и авторизации.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthResponse {
     /// Пользователь.
-    pub user: User,
+    pub user: Option<User>,
     /// JWT-токен пользователя.
     pub token: Token,
+}
+
+impl From<ProtoAuthResponse> for AuthResponse {
+    fn from(resp: ProtoAuthResponse) -> Self {
+        Self {
+            user: resp.user,
+            token: Token(resp.token),
+        }
+    }
 }

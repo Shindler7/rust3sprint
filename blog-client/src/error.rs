@@ -1,6 +1,6 @@
 //! Ошибки клиентского приложения.
 
-use reqwest::Error as ReqwestError;
+use reqwest::{Error as ReqwestError, StatusCode};
 use thiserror::Error;
 use tonic::transport::Error as TonicError;
 
@@ -29,7 +29,7 @@ pub enum BlogClientError {
 
     /// Ошибки от [`ReqwestError`].
     #[error(transparent)]
-    ReqwestError(#[from] ReqwestError),
+    ReqwestError(ReqwestError),
 
     /// Ошибки от [`TonicError`].
     #[error(transparent)]
@@ -58,5 +58,21 @@ impl BlogClientError {
     /// Конструктор для ошибки [`BlogClientError::ClientError`]
     pub(crate) fn client_error(msg_err: impl Into<String>) -> Self {
         Self::ClientError(msg_err.into())
+    }
+}
+
+impl From<ReqwestError> for BlogClientError {
+    fn from(e: ReqwestError) -> Self {
+        if let Some(status) = e.status()
+            && status.is_client_error()
+        {
+            match status {
+                StatusCode::UNAUTHORIZED => BlogClientError::Unauthorized,
+                StatusCode::NOT_FOUND => BlogClientError::NotFound,
+                _ => BlogClientError::invalid_req(status.to_string()),
+            }
+        } else {
+            Self::ReqwestError(e)
+        }
     }
 }

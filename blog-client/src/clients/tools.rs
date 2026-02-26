@@ -9,7 +9,7 @@ use reqwest::Url;
 ///
 /// Если на любом из этапов формирования ссылки возникнет проблема, то вернётся
 /// ошибка [`BlogClientError::ClientError`].
-pub(crate) fn compile_url(base: Url, endpoint: Vec<&str>) -> Result<Url, BlogClientError> {
+pub(crate) fn compile_url(base: &Url, endpoint: &[&str]) -> Result<Url, BlogClientError> {
     base.join(&endpoint.join("/"))
         .map_err(|err| BlogClientError::client_error(err.to_string()))
 }
@@ -24,8 +24,8 @@ mod tests {
 
     #[test]
     fn compile_url_one_endpoint() {
-        let endpoint = vec!["one"];
-        let res = compile_url(valid_base_url(), endpoint);
+        let endpoint = ["one"];
+        let res = compile_url(&valid_base_url(), &endpoint);
         assert!(res.is_ok());
     }
 }

@@ -1,9 +1,12 @@
 //! Локальные модели и команды клиентского транспорта.
 
+use proto_crate::proto_blog::{CreatePostRequest, LoginRequest, RegisterRequest};
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use serde::{Serialize, Deserialize};
 
 /// Обёртка для id публикации.
+#[derive(Serialize, Deserialize)]
+#[serde(transparent)]
 pub(crate) struct PostId(i64);
 
 impl Display for PostId {
@@ -18,15 +21,31 @@ impl From<i64> for PostId {
     }
 }
 
+impl From<PostId> for i64 {
+    fn from(post_id: PostId) -> i64 {
+        post_id.0
+    }
+}
+
 /// Команда на регистрацию пользователя.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct UserRegisterCmd {
     /// Имя пользователя.
-    username: String,
+    pub(crate) username: String,
     /// Адрес электронной почты.
-    email: String,
+    pub(crate) email: String,
     /// Пароль.
-    password: String,
+    pub(crate) password: String,
+}
+
+impl From<UserRegisterCmd> for RegisterRequest {
+    fn from(u: UserRegisterCmd) -> Self {
+        Self {
+            username: u.username,
+            email: u.email,
+            password: u.password,
+        }
+    }
 }
 
 impl UserRegisterCmd {
@@ -41,11 +60,21 @@ impl UserRegisterCmd {
 }
 
 /// Команда на авторизацию пользователя.
+#[derive(Serialize, Deserialize)]
 pub(crate) struct UserAuthCmd {
     /// Имя пользователя.
-    username: String,
+    pub(crate) username: String,
     /// Пароль.
-    password: String,
+    pub(crate) password: String,
+}
+
+impl From<UserAuthCmd> for LoginRequest {
+    fn from(u: UserAuthCmd) -> Self {
+        Self {
+            username: u.username,
+            password: u.password,
+        }
+    }
 }
 
 impl UserAuthCmd {
@@ -59,11 +88,21 @@ impl UserAuthCmd {
 }
 
 /// Команда создания публикации.
+#[derive(Serialize, Deserialize)]
 pub(crate) struct PostCreateCmd {
     /// Заголовок публикации.
-    title: String,
+    pub(crate) title: String,
     /// Содержание публикации.
-    content: String,
+    pub(crate) content: String,
+}
+
+impl From<PostCreateCmd> for CreatePostRequest {
+    fn from(post_cmd: PostCreateCmd) -> Self {
+        Self {
+            title: post_cmd.title,
+            content: post_cmd.content,
+        }
+    }
 }
 
 impl PostCreateCmd {
@@ -77,13 +116,14 @@ impl PostCreateCmd {
 }
 
 /// Команда обновления публикации.
+#[derive(Serialize, Deserialize)]
 pub(crate) struct PostUpdateCmd {
     /// Id публикации на сервере.
-    post_id: PostId,
+    pub(crate) post_id: PostId,
     /// Новый заголовок публикации (опционально).
-    title: Option<String>,
+    pub(crate) title: Option<String>,
     /// Новое содержание публикации (опционально).
-    content: Option<String>,
+    pub(crate) content: Option<String>,
 }
 
 impl PostUpdateCmd {
@@ -97,6 +137,25 @@ impl PostUpdateCmd {
             post_id,
             title,
             content,
+        }
+    }
+}
+
+/// Специализированная команда для обновления публикации для HTTP-сервера.
+/// Отсутствует post_id в теле структуры.
+#[derive(Serialize, Deserialize)]
+pub(crate) struct PostUpdateCmdHttp {
+    /// Новый заголовок публикации (опционально).
+    pub(crate) title: Option<String>,
+    /// Новое содержание публикации (опционально).
+    pub(crate) content: Option<String>,
+}
+
+impl From<PostUpdateCmd> for PostUpdateCmdHttp {
+    fn from(p: PostUpdateCmd) -> Self {
+        Self {
+            title: p.title,
+            content: p.content,
         }
     }
 }
