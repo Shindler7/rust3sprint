@@ -24,19 +24,22 @@ SERVER_PORT=8080
 CORS_URL=http://localhost:3000
 CORS_MAX_AGE=600
 
+# JWT
+JWT_SECRET_KEY=<your_secretkey>
+
 # gRPC
 GRPC_PORT=50051
 
 # Database.
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
+DB_USERNAME=<your_username>
+DB_PASSWORD=<your_password>
 DB_HOST=127.0.0.1
 DB_PORT=5432
-DB_NAME=practice_db
+DB_NAME=<your_db_name>
 DB_MAX_CONN=10
 
 # Logging
-RUST_LOG=blog-server=debug,actix_web=info
+RUST_LOG=blog_server=debug,actix_web=info
 "#;
 
 /// Шаблон ссылки для подключения к базе данных.

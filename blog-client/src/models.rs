@@ -5,6 +5,7 @@ use crate::config::DISPLAY_TOKEN_CHARS;
 use proto_crate::proto_blog::User;
 
 /// Новый тип для хранения токена.
+#[derive(Clone)]
 pub struct Token(String);
 
 impl Display for Token {
@@ -22,7 +23,7 @@ impl Debug for Token {
 }
 
 /// Успешный ответ при регистрации и авторизации.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AuthResponse {
     /// Пользователь.
     pub user: User,
