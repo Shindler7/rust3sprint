@@ -1,6 +1,8 @@
 //! Локальные модели и команды клиентского транспорта.
 
-use proto_crate::proto_blog::{CreatePostRequest, LoginRequest, RegisterRequest};
+use proto_crate::proto_blog::{
+    CreatePostRequest, LoginRequest, PostResponse, RegisterRequest, UpdatePostRequest,
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -126,6 +128,16 @@ pub(crate) struct PostUpdateCmd {
     pub(crate) content: Option<String>,
 }
 
+impl From<PostUpdateCmd> for UpdatePostRequest {
+    fn from(upd_cmd: PostUpdateCmd) -> Self {
+        Self {
+            id: upd_cmd.post_id.into(),
+            title: upd_cmd.title,
+            content: upd_cmd.content,
+        }
+    }
+}
+
 impl PostUpdateCmd {
     /// Создание команды для изменения публикации.
     pub(crate) fn new(post_id: i64, title: Option<&str>, content: Option<&str>) -> Self {
@@ -156,6 +168,28 @@ impl From<PostUpdateCmd> for PostUpdateCmdHttp {
         Self {
             title: p.title,
             content: p.content,
+        }
+    }
+}
+
+/// Обёртка для [`PostResponse`].
+///
+/// При взаимодействии с gRPC-сервером, экземпляр [`Post`] возвращается внутри
+/// [`Option`], и требуется дублирование кода в хендлерах для обработки этого
+/// состояния.
+///
+/// Структура позволяет добавить унифицированные методы для решения этой
+/// задачи.
+#[derive(Clone, Serialize, Deserialize)]
+pub(crate) struct PostResponseWrap {
+    /// Объект с публикацией [`Post`] от gRPC-сервера.
+    pub(crate) post_response: PostResponse,
+}
+
+impl From<PostResponse> for PostResponseWrap {
+    fn from(post_resp: PostResponse) -> Self {
+        Self {
+            post_response: post_resp,
         }
     }
 }

@@ -2,7 +2,7 @@
 
 use reqwest::{Error as ReqwestError, StatusCode};
 use thiserror::Error;
-use tonic::transport::Error as TonicError;
+use tonic::{Code, Status, transport::Error as TonicError};
 
 /// Ошибки клиента.
 #[derive(Error, Debug)]
@@ -35,9 +35,9 @@ pub enum BlogClientError {
     #[error(transparent)]
     TonicError(#[from] TonicError),
 
-    /// Ошибки от [`tonic::Status`].
+    /// Ошибки от [`Status`].
     #[error(transparent)]
-    GrpcError(#[from] tonic::Status),
+    GrpcError(Status),
 
     /// Универсальный тип ошибок клиента.
     #[error("Ошибка исполнения клиента: {0}")]
@@ -73,6 +73,19 @@ impl From<ReqwestError> for BlogClientError {
             }
         } else {
             Self::ReqwestError(e)
+        }
+    }
+}
+
+impl From<Status> for BlogClientError {
+    fn from(status: Status) -> Self {
+        match status.code() {
+            Code::NotFound => BlogClientError::NotFound,
+            Code::Unauthenticated => BlogClientError::Unauthorized,
+            Code::AlreadyExists | Code::InvalidArgument => {
+                BlogClientError::InvalidRequest(status.to_string())
+            }
+            _ => BlogClientError::GrpcError(status),
         }
     }
 }

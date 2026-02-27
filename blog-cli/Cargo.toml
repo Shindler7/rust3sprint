@@ -8,3 +8,6 @@ rust-version = "1.90"
 workspace = true
 
 [dependencies]
+tokio.workspace = true
+
+blog-client = { path = "../blog-client" }

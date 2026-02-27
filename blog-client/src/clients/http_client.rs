@@ -1,6 +1,7 @@
 //! Транспорт для взаимодействия с HTTP-сервером.
 
 use crate::{
+    BlogClientError,
     clients::{
         models::{
             PostCreateCmd, PostId, PostUpdateCmd, PostUpdateCmdHttp, UserAuthCmd, UserRegisterCmd,
@@ -9,7 +10,6 @@ use crate::{
         traits::ClientTransportExt,
     },
     models::{AuthResponse, Token},
-    BlogClientError,
 };
 use proto_crate::proto_blog::{ListPostsResponse, Post};
 use reqwest::{Client, Method, Response, Url};
@@ -188,19 +188,13 @@ impl ClientTransportExt for HttpClient {
         Ok(())
     }
 
-    async fn list_posts(
-        &self,
-        limit: Option<u32>,
-        offset: Option<u32>,
-    ) -> Result<ListPostsResponse, Self::Error> {
+    async fn list_posts(&self, limit: u32, offset: u32) -> Result<ListPostsResponse, Self::Error> {
         let mut url = compile_url(&self.server_url, &[API_POSTS])?;
 
-        if let Some(l) = limit {
-            url.query_pairs_mut().append_pair("limit", &l.to_string());
-        }
-        if let Some(o) = offset {
-            url.query_pairs_mut().append_pair("offset", &o.to_string());
-        }
+        url.query_pairs_mut()
+            .append_pair("limit", &limit.to_string());
+        url.query_pairs_mut()
+            .append_pair("offset", &offset.to_string());
 
         let res = self
             .send_request::<()>(Method::GET, url, None, None)

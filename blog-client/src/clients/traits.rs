@@ -40,7 +40,7 @@ pub(crate) trait ClientTransportExt {
     /// Сервер может устанавливать ограничения по значениям.
     async fn list_posts(
         &self,
-        limit: Option<u32>,
-        offset: Option<u32>,
+        limit: u32,
+        offset: u32,
     ) -> Result<ListPostsResponse, Self::Error>;
 }

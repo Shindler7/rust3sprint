@@ -6,7 +6,6 @@ pub(crate) mod clients;
 mod config;
 pub mod error;
 pub mod models;
-mod tools;
 
 use crate::{
     clients::{
@@ -16,11 +15,11 @@ use crate::{
         traits::ClientTransportExt,
     },
     models::{AuthResponse, Token},
-    tools::str_to_url,
 };
 pub use error::BlogClientError;
 use proto_crate::proto_blog::{ListPostsResponse, Post};
 use reqwest::Url;
+use tonic::transport::Uri;
 
 /// Доступный транспорт для запросов к API.
 ///
@@ -44,7 +43,7 @@ pub enum Transport {
     /// HTTP-сервер.
     Http(Url),
     /// gRPC-сервер.
-    Grpc(Url),
+    Grpc(Uri),
 }
 
 impl Transport {
@@ -52,9 +51,11 @@ impl Transport {
     ///
     /// ## Args
     ///
-    /// - `str_url` — строковое представление ссылки к серверу.
-    pub fn http<S: Into<String>>(str_url: S) -> Result<Self, BlogClientError> {
-        let url = str_to_url(&str_url.into())?;
+    /// - `url` — строковое представление ссылки к серверу.
+    pub fn http<S: Into<String>>(url: S) -> Result<Self, BlogClientError> {
+        let url =
+            Url::parse(&url.into()).map_err(|err| BlogClientError::invalid_url(err.to_string()))?;
+
         Ok(Self::Http(url))
     }
 
@@ -62,17 +63,14 @@ impl Transport {
     ///
     /// ## Args
     ///
-    /// - `str_url` — строковое представление ссылки к серверу.
-    pub fn grpc<S: Into<String>>(s: S) -> Result<Self, BlogClientError> {
-        let url = str_to_url(&s.into())?;
-        Ok(Self::Grpc(url))
-    }
+    /// - `url` — строковое представление ссылки к серверу.
+    pub fn grpc<S: Into<String>>(url: S) -> Result<Self, BlogClientError> {
+        let uri: Uri = url
+            .into()
+            .parse()
+            .map_err(|_| BlogClientError::invalid_url("gRPC-клиент"))?;
 
-    /// Предоставить ссылку на значение [`Url`].
-    pub(crate) fn url(&self) -> Url {
-        match self {
-            Transport::Http(s) | Transport::Grpc(s) => s.clone(),
-        }
+        Ok(Self::Grpc(uri))
     }
 }
 
@@ -80,7 +78,7 @@ impl Transport {
 #[derive(Debug)]
 pub struct BlogClient {
     /// Установка транспорта.
-    pub transport: Transport,
+    transport: Transport,
     /// Используемый клиент для HTTP-запросов.
     http_client: Option<HttpClient>,
     /// Используемый клиент для gRPC-запросов.
@@ -97,14 +95,14 @@ impl BlogClient {
     ///
     /// ## Пример
     ///
-    /// ```
+    /// ```ignore
     /// use blog_client::{Transport, BlogClient};
     ///
     /// let server_url = "http:127.0.0.1:8080";
     /// let transport = Transport::http(server_url).unwrap();
     ///
-    /// let client = BlogClient::new(transport).unwrap();
-    /// let result = client.list_posts(10, 0);
+    /// let mut client = BlogClient::new(transport).await.unwrap();
+    /// let result = client.list_posts(10, 0).await.unwrap();
     /// ```
     ///
     /// ## Ошибки
@@ -112,16 +110,18 @@ impl BlogClient {
     /// При заказе HTTP-транспорта может возникнуть ошибка: если не удалось
     /// инициализировать TLS-бэкенд (например, `rustls` или `native-tls`),
     /// либо конструктору HTTP-клиента не удаётся загрузить системные настройки.
-    pub fn new(transport: Transport) -> Result<Self, BlogClientError> {
-        let url = transport.url();
-        let (http_client, grpc_client) = match &transport {
-            Transport::Http(_) => (
-                Some(HttpClient::new(url).map_err(|err| {
+    pub async fn new(transport: Transport) -> Result<Self, BlogClientError> {
+        let (http_client, grpc_client) = match transport {
+            Transport::Http(ref url) => {
+                let client = HttpClient::new(url.clone()).map_err(|err| {
                     BlogClientError::client_error(format!("ошибка создания HTTP-клиента ({err})"))
-                })?),
-                None,
-            ),
-            Transport::Grpc(_) => (None, Some(GrpcClient::new(url))),
+                })?;
+                (Some(client), None)
+            }
+            Transport::Grpc(ref uri) => {
+                let client = GrpcClient::new(uri.clone()).await?;
+                (None, Some(client))
+            }
         };
 
         Ok(Self {
@@ -230,17 +230,19 @@ impl BlogClient {
     ///
     /// ## Args
     ///
-    /// - `limit` — количество возвращаемых записей (опционально)
-    /// - `offset` — количество записей для пропуска (опционально)
+    /// - `limit` — количество возвращаемых записей (опционально), по умолчанию
+    ///   значение равно 10.
+    /// - `offset` — количество записей для пропуска (опционально), по
+    ///   умолчанию значение равно 0.
     ///
-    /// Сервер может устанавливать ограничения по значениям. Если значения
-    /// не заданы, сервер может использовать собственные по умолчанию, либо
-    /// вернуть ошибку. Рекомендуется устанавливать значения.
+    /// Сервер может устанавливать ограничения по значениям.
     pub async fn list_posts(
         &self,
         limit: Option<u32>,
         offset: Option<u32>,
     ) -> Result<ListPostsResponse, BlogClientError> {
-        self.transport().list_posts(limit, offset).await
+        self.transport()
+            .list_posts(limit.unwrap_or(10), offset.unwrap_or(0))
+            .await
     }
 }
