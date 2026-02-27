@@ -3,11 +3,20 @@ name = "blog-cli"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.90"
+description = "A command-line client for interacting with the blog's API."
 
 [lints]
 workspace = true
 
 [dependencies]
+clap = {version = "4", features = ["derive"]}
+
+# Workspace
+anyhow.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 tokio.workspace = true
 
+# Workspace members
 blog-client = { path = "../blog-client" }

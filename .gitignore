@@ -4,6 +4,7 @@ Cargo.lock
 
 # Env
 .env
+/blog-cli/.blog_token
 
 # RustRover
 /.idea
