@@ -4,6 +4,7 @@
     "grpc_server": "http://localhost:50051"
   },
   "app_state": {
-    "token_file": ".blog_token"
+    "token_file": ".blog_token",
+    "token_path": null
   }
 }

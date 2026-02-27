@@ -7,6 +7,9 @@ mod config;
 pub mod error;
 pub mod models;
 
+pub use error::BlogClientError;
+pub use proto_crate::proto_blog::Post;
+
 use crate::{
     clients::{
         grpc_client::GrpcClient,
@@ -16,8 +19,8 @@ use crate::{
     },
     models::{AuthResponse, Token},
 };
-pub use error::BlogClientError;
-use proto_crate::proto_blog::{ListPostsResponse, Post};
+
+use proto_crate::proto_blog::{ListPostsResponse};
 use reqwest::Url;
 use tonic::transport::Uri;
 
@@ -133,7 +136,7 @@ impl BlogClient {
     }
 
     /// Добавить JWT-токен клиенту.
-    fn set_token(&mut self, token: Token) {
+    pub fn set_token(&mut self, token: Token) {
         self.token = Some(token);
     }
 
@@ -244,5 +247,10 @@ impl BlogClient {
         self.transport()
             .list_posts(limit.unwrap_or(10), offset.unwrap_or(0))
             .await
+    }
+
+    /// Возвращает `true`, если сервер работает в режиме `http`.
+    pub fn is_http(&self) -> bool {
+        self.http_client.is_some()
     }
 }

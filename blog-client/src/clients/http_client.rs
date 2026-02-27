@@ -96,21 +96,13 @@ impl HttpClient {
 
         let mut req_builder = client.request(method, url);
         if let Some(token) = token {
-            req_builder = req_builder.bearer_auth(token);
+            req_builder = req_builder.bearer_auth(token.as_str());
         }
         if let Some(body) = body {
             req_builder = req_builder.json(&body);
         }
 
         let res = req_builder.send().await?;
-
-        // if res.status().is_client_error() {
-        //     return match res.status() {
-        //         StatusCode::UNAUTHORIZED => Err(BlogClientError::Unauthorized),
-        //         StatusCode::NOT_FOUND => Err(BlogClientError::NotFound),
-        //         _ => Err(BlogClientError::InvalidRequest(res.status().to_string())),
-        //     };
-        // }
 
         res.error_for_status_ref()?;
         Ok(res)

@@ -3,9 +3,8 @@
 //! Используют для формирования файл `settings.json`, в корневом каталоге
 //! проекта.
 
-use anyhow::{Context, Result as AnyhowResult};
+use anyhow::{anyhow, Context, Result as AnyhowResult};
 use serde::Deserialize;
-use serde_json;
 use std::{fs::read_to_string, path::PathBuf};
 
 /// Имя файла конфигурации.
@@ -30,14 +29,21 @@ pub(crate) struct SettingsServers {
 /// Различные параметры состояния приложения.
 #[derive(Debug, Deserialize)]
 pub(crate) struct AppState {
-    /// Файл для хранения токена.
-    pub(crate) token_file: PathBuf,
+    /// Имя файла для хранения токена.
+    token_file: PathBuf,
+
+    /// Путь к файлу токена. Если `None`, то используется каталог проекта.
+    token_path: Option<PathBuf>,
+
+    /// Полный путь к файлу хранения токена. Формируется автоматически.
+    #[serde(skip)]
+    pub(crate) token_full_path: PathBuf,
 }
 
 /// Конфигурация приложения.
 ///
 /// Для инициализации конфигурации необходимо использовать метод
-/// [`Settings::setup`].
+/// [`Settings::init`].
 #[derive(Debug, Deserialize)]
 pub(crate) struct Settings {
     /// Адреса используемых серверов.
@@ -47,7 +53,7 @@ pub(crate) struct Settings {
 
 impl Settings {
     /// Инициализация конфигурации из файла.
-    pub(crate) fn setup() -> AnyhowResult<Self> {
+    pub(crate) fn init() -> AnyhowResult<Self> {
         let json_file = get_config_json_path();
         let contents = read_to_string(&json_file).with_context(|| {
             format!(
@@ -56,6 +62,22 @@ impl Settings {
             )
         })?;
 
-        serde_json::from_str(&contents).with_context(|| "Ошибка парсинга файла конфигурации")
+        let mut settings: Settings = serde_json::from_str(&contents)
+            .map_err(|err| anyhow!("Ошибка парсинга файла конфигурации: {err}"))?;
+
+        settings.setup();
+
+        Ok(settings)
+    }
+
+    /// Первичная настройка параметров конфигурации.
+    fn setup(&mut self) {
+        let base = self
+            .app_state
+            .token_path
+            .clone()
+            .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")));
+
+        self.app_state.token_full_path = base.join(&self.app_state.token_file);
     }
 }

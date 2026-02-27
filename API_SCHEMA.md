@@ -46,7 +46,7 @@ curl --location 'http://localhost:8080/api/auth/login' \
 
 **Методы**
 
-`GRPC localhost:8080/blog.BlogService`
+`GRPC <url_server_addr>/blog.BlogService`
 
 * Register(RegisterRequest) -> AuthResponse
 * Login(LoginRequest) -> AuthResponse
@@ -85,13 +85,13 @@ message AuthResponse {
 
 #### HTTP API
 
-| Метод     | Эндпоинт               | Описание                                            |
-|-----------|------------------------|-----------------------------------------------------|
-| `GET`     | `/api/posts/`          | Получение списка последних публикаций, с пагинацией |
-| `GET`     | `/api/posts/{post_id}` | Получение публикации по её id                       |
-| `POST`*   | `/api/posts`           | Создание публикации                                 |
-| `PUT`*    | `/api/posts/{post_id}` | Обновление публикации по её id                      |
-| `DELETE`* | `api/posts/{post_id}`  | Удаление публикации по её id                        |
+| Метод      | Эндпоинт               | Описание                                            |
+|------------|------------------------|-----------------------------------------------------|
+| `GET`      | `/api/posts/`          | Получение списка последних публикаций, с пагинацией |
+| `GET`      | `/api/posts/{post_id}` | Получение публикации по её id                       |
+| * `POST`   | `/api/posts`           | Создание публикации                                 |
+| * `PUT`    | `/api/posts/{post_id}` | Обновление публикации по её id                      |
+| * `DELETE` | `/api/posts/{post_id}` | Удаление публикации по её id                        |
 
 \* — требуется JWT-токен (авторизация) для операции.
 
@@ -144,7 +144,7 @@ curl --location --request DELETE 'http://localhost:8080/api/posts/3' \
 
 **Методы**
 
-`GRPC localhost:8080/blog.BlogService`
+`GRPC <url_server_addr>/blog.BlogService`
 
 * CreatePost(CreatePostRequest) → PostResponse
 * GetPost(GetPostRequest) → PostResponse
