@@ -3,7 +3,7 @@
 use crate::{
     data::post_repo::PostRepository,
     domain::{
-        post::{CreatePost, EditPostCommand, Post},
+        post::{CreatePost, EditPostCommand, ListPosts, Post},
         types::DataId,
     },
     errors::{DomainError, RepoErrorMap, SqlxResultExt},
@@ -74,8 +74,8 @@ where
         &self,
         limit: i32,
         offset: i32,
-    ) -> Result<Vec<Post>, DomainError> {
-        let posts = self.repo.list(limit, offset).await.map_err(|err| {
+    ) -> Result<ListPosts, DomainError> {
+        let (posts, total) = self.repo.list(limit, offset).await.map_err(|err| {
             error!(
                 error=%err,
                 "Не удалось получить из БД список постов"
@@ -83,7 +83,7 @@ where
             DomainError::server_err(err.to_string())
         })?;
 
-        Ok(posts)
+        Ok(ListPosts::new(posts, total, limit, offset))
     }
 
     /// Отредактировать существующую публикацию.

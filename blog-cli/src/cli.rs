@@ -1,7 +1,7 @@
 //! Механизация парсинга аргументов командной строки.
 
-use clap::{Parser, Subcommand};
 use anyhow::Result as AnyhowResult;
+use clap::{Parser, Subcommand};
 
 /// Supported server commands.
 #[derive(Debug, Subcommand)]
@@ -116,6 +116,6 @@ pub(crate) struct CliArgs {
 /// Получить от пользователя задачу из командной строки.
 pub(crate) fn read_args() -> AnyhowResult<CliArgs> {
     let cli_args = CliArgs::parse();
-    
+
     Ok(cli_args)
 }

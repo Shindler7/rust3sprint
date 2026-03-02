@@ -211,18 +211,8 @@ impl TraitBlogService for BlogGrpcService {
             .list_posts(list_posts.limit, list_posts.offset)
             .await?;
 
-        let grpc_posts: Vec<ProtoPost> = posts
-            .into_iter()
-            .map(|p| p.try_into())
-            .collect::<Result<_, _>>()?;
+        let grpc_posts: ListPostsResponse = posts.try_into()?;
 
-        let len_posts = grpc_posts.len() as i32;
-
-        Ok(Response::new(ListPostsResponse {
-            posts: grpc_posts,
-            total: len_posts,
-            limit: list_posts.limit,
-            offset: list_posts.offset,
-        }))
+        Ok(Response::new(grpc_posts))
     }
 }

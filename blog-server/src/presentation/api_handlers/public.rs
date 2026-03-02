@@ -101,12 +101,7 @@ async fn get_posts(
 
     let posts = blog_service.list_posts(limit_i32, offset_i32).await?;
 
-    Ok(HttpResponse::Ok().json(json!({
-        "posts": posts,
-        "total": posts.len(),
-        "limit": limit,
-        "offset": offset,
-    })))
+    Ok(HttpResponse::Ok().json(posts))
 }
 
 /// Возвращает публикацию по id, при наличии.

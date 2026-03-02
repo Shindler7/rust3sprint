@@ -8,10 +8,11 @@ rust-version = "1.90"
 workspace = true
 
 [dependencies]
-reqwest = { version = "0.13", features = ["json"] }
-
 proto-crate = { path = "../proto-crate" }
 
+reqwest = { version = "0.13", features = ["json"] }
+
+# Workspace
 serde.workspace = true
 tonic.workspace = true
 thiserror.workspace = true

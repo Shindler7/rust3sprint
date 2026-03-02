@@ -8,9 +8,15 @@ Cargo.lock
 
 # RustRover
 /.idea
+/.tech
 
 # Apps
 /logs/
 
 # Database
 .sqlx/
+
+# WASM
+/blog-wasm/dist/
+/blog-wasm/pkg/
+/.web_env

@@ -5,9 +5,21 @@ edition = "2024"
 rust-version = "1.90"
 
 [dependencies]
+gloo-net = "0.6"
+tracing-web = "0.1"
+url = "2"
+web-sys = { version = "0.3", features = ["Document", "Element", "HtmlElement", "Window", "Request", "RequestInit", "Response", "Headers", "console"] }
+yew = { version = "0.22", features = ["csr"] }
+yew-router = "0.19"
+
+# From workspace
+chrono.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing-subscriber.workspace = true
+tracing.workspace = true
+
+commons = {path = "../commons"}
 
 [lints]
 workspace = true
-
-[lib]
-crate-type = ["cdylib"]

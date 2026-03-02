@@ -9,14 +9,14 @@ description = "A command-line client for interacting with the blog's API."
 workspace = true
 
 [dependencies]
-clap = {version = "4", features = ["derive"]}
+clap = { version = "4", features = ["derive"] }
 
 # Workspace
 anyhow.workspace = true
-chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "fs"] }
 
 # Workspace members
 blog-client = { path = "../blog-client" }
+commons = {path = "../commons"}

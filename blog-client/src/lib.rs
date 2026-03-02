@@ -1,26 +1,57 @@
-//! Клиентский модуль взаимодействия с сервером.
+//! Клиентский модуль взаимодействия с сервером блога, работающий в асинхронном
+//! контексте.
 //!
-//! Это библиотека, которая используется CLI и WASM-фронтендом.
+//! Входной адаптер это структура [`BlogClient`], который имеет представления
+//! всех доступных сервисов API, включая аутентификацию и работу
+//! с публикациями.
+//!
+//! Для инициализации адаптера необходимо определить используемый транспорт.
+//! Например, `http` или `grpc`, а затем инициализировать [`BlogClient`].
+//!
+//! ## Пример
+//!
+//! ```ignore
+//! use blog_client::{BlogClient, Transport};
+//! // use tokio;
+//!
+//! // #[tokio::main]
+//! // async fn main() {
+//!     let transport = Transport::http("http://127.0.0.1:8000").unwrap();
+//!     let client = BlogClient::new(transport).await.unwrap();
+//!
+//!     // Получим список постов (API http-сервиса GET "/api/posts").
+//!     let post = client.list_posts(10, None).await.unwrap();
+//! // }
+//!
+//! ## Структуры
+//!
+//! Ответы успешных запросов завёрнуты в собственные структуры, которые
+//! библиотека предоставляет публично. Например, [`Post`] для отдельной
+//! публикации, [`AuthResponse`] для сервисов аутентификации.
+//!
+//! ## Ошибки
+//!
+//! Ошибки клиента делятся на доменные (контекстные) и транспортные: первые
+//! отражают корректность запроса и состояние клиента, вторые — сбои на уровне
+//! HTTP/gRPC транспорта. Они консолидированы в [`BlogClientError`].
+//! ```
 
 pub(crate) mod clients;
 mod config;
 pub mod error;
 pub mod models;
 
+pub use crate::models::{AuthResponse, Token};
 pub use error::BlogClientError;
-pub use proto_crate::proto_blog::Post;
+pub use proto_crate::proto_blog::{ListPostsResponse, Post};
 
-use crate::{
-    clients::{
-        grpc_client::GrpcClient,
-        http_client::HttpClient,
-        models::{PostCreateCmd, PostId, PostUpdateCmd, UserAuthCmd, UserRegisterCmd},
-        traits::ClientTransportExt,
-    },
-    models::{AuthResponse, Token},
+use crate::clients::{
+    grpc_client::GrpcClient,
+    http_client::HttpClient,
+    models::{PostCreateCmd, PostId, PostUpdateCmd, UserAuthCmd, UserRegisterCmd},
+    traits::ClientTransportExt,
 };
 
-use proto_crate::proto_blog::{ListPostsResponse};
 use reqwest::Url;
 use tonic::transport::Uri;
 

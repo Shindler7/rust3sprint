@@ -1,12 +1,13 @@
 //! Поддерживающие инструменты для клиентского модуля.
 use anyhow::{Context, Result as AnyhowResult};
 use blog_client::Post;
-use chrono::{DateTime, Local};
 use std::path::Path;
 use tokio::{
     fs::{read_to_string, OpenOptions},
     io::AsyncWriteExt,
 };
+
+use commons::string_from_timestamp;
 
 /// Загрузить токен из файла.
 pub(super) async fn read_token(token_file: &Path) -> Option<String> {
@@ -61,31 +62,4 @@ pub(super) fn print_one_post(post: &Post) {
 
 pub(super) fn print_token_not_set() {
     println!("Не выполнено. Отсутствует токен авторизации")
-}
-
-/// Преобразовать часовую отметку UTC в текстовое представление даты.
-///
-/// Функция не может проверить создан ли timestamp в зоне UTC. Если
-/// подтверждения нет, это может привести к искажённому результату.
-///
-/// ## Args
-///
-/// - `utc_secs` — количество секунд с начала эпохи UNIX во временной зоне UTC
-/// - `local_time` — если `true`, время будет приведено к локальному часовому
-///   поясу
-///
-/// ## Returns
-///
-/// При успешном преобразовании вернётся отформатированная строка. Если вывести
-/// время не удалось, вернётся `None`.
-fn string_from_timestamp(utc_secs: i64, local_time: bool) -> Option<String> {
-    let datetime_utc = DateTime::from_timestamp_secs(utc_secs)?;
-
-    let datetime_local = if local_time {
-        datetime_utc
-    } else {
-        DateTime::from(datetime_utc.with_timezone(&Local))
-    };
-
-    Some(datetime_local.format("%H:%M, %d.%m.%Y").to_string())
 }

@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// Обёртка для id публикации.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
-pub(crate) struct PostId(i64);
+pub struct PostId(i64);
 
 impl Display for PostId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -207,7 +207,7 @@ message ListPostsRequest {
 // Успешный ответ на запрос списка публикаций.
 message ListPostsResponse {
   repeated Post posts = 1;
-  int32 total = 2;
+  int64 total = 2;
   int32 limit = 3;
   int32 offset = 4;
 }

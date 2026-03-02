@@ -26,13 +26,21 @@ pub(crate) async fn run_blog_server(
     );
 
     let cfg_clone = Arc::clone(&cfg);
+
     let server = HttpServer::new(move || {
-        let cors = Cors::default()
-            .allowed_origin(&cfg_clone.security.cors_url)
+        let mut cors = Cors::default()
             .allowed_methods(vec!["GET", "POST", "OPTIONS"])
             .allow_any_header()
-            .supports_credentials()
+            // .supports_credentials()
             .max_age(cfg_clone.security.cors_max_age);
+
+        if cfg_clone.security.cors_urls.iter().any(|c| c == "*") {
+            cors = cors.allow_any_origin()
+        } else {
+            for origin in &cfg_clone.security.cors_urls {
+                cors = cors.allowed_origin(origin)
+            }
+        }
 
         let default_headers = middleware::default_headers();
 

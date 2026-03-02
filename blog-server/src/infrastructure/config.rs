@@ -2,7 +2,7 @@
 
 use crate::infrastructure::jwt::JwtService;
 use crate::settings::{DB_MAX_CONN, DB_URL_TEMPLATE};
-use anyhow::{anyhow, Context, Result as AnyhowResult};
+use anyhow::{anyhow, bail, Context, Result as AnyhowResult};
 use std::{
     env,
     fmt::Display,
@@ -84,7 +84,7 @@ impl Cfg for ServerCfg {
 #[derive(Clone)]
 pub(crate) struct SecurityCfg {
     /// Разрешённый origin для CORS (или "*" для всех).
-    pub cors_url: String,
+    pub cors_urls: Vec<String>,
     /// Таймаут запроса в секундах.
     pub cors_max_age: usize,
     /// Инфраструктура для обработки JWT-токенов.
@@ -93,7 +93,7 @@ pub(crate) struct SecurityCfg {
 
 impl Cfg for SecurityCfg {
     fn collect() -> AnyhowResult<Self> {
-        let cors_url = load_from_env("CORS_URL")?;
+        let cors_urls = load_csv_from_env("CORS_URLS")?;
         let cors_max_age = load_from_env("CORS_MAX_AGE")?;
 
         // Создание JWT-механизации.
@@ -101,7 +101,7 @@ impl Cfg for SecurityCfg {
         let jwt_service = JwtService::from_secret(jwt_secret);
 
         Ok(Self {
-            cors_url,
+            cors_urls,
             cors_max_age,
             jwt_service,
         })
@@ -163,4 +163,28 @@ where
 
     s.parse::<T>()
         .map_err(|e| anyhow!("Ошибка преобразования {name}: {e}"))
+}
+
+/// Загрузить список переменных из env.
+///
+/// Например, для CORS:
+///
+/// ```ignore
+/// CORS_URLS=http://127.0.0.1:8888,http://localhost:3000
+/// ```
+fn load_csv_from_env(name: &str) -> AnyhowResult<Vec<String>> {
+    let raw: String = load_from_env(name)?;
+
+    let values: Vec<String> = raw
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(ToOwned::to_owned)
+        .collect();
+
+    if values.is_empty() {
+        bail!("Переменная `{name}` пуста или не содержит валидных значений");
+    }
+
+    Ok(values)
 }

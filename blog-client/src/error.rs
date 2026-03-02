@@ -1,4 +1,12 @@
 //! Ошибки клиентского приложения.
+//!
+//! Ошибки домена/клиента (семантические, контекстные) — относятся к смыслу
+//! запроса/ответа и состоянию клиента:
+//! `NotFound`, `Unauthorized`, `InvalidRequest`, `InvalidUrl`, `TokenNotSet`,
+//! `ClientError`.
+//!
+//! Транспортные ошибки (сетевые/протокольные) — ошибки на уровне HTTP/gRPC и
+//! транспорта: `ReqwestError`, `TonicError`, `GrpcError(Status)`
 
 use reqwest::{Error as ReqwestError, StatusCode};
 use thiserror::Error;

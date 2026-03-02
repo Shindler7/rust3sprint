@@ -21,7 +21,11 @@ pub(crate) trait PostRepository: Send + Sync {
     ///
     /// - `limit` — количество записей, должно быть больше 1
     /// - `offset` — отступ от первой записи в извлечённом списке
-    async fn list(&self, limit: i32, offset: i32) -> Result<Vec<Post>, SqlxError>;
+    /// 
+    /// ## Returns
+    /// 
+    /// Перечень публикаций, с учётом заказа, и общее число публикаций в базе.
+    async fn list(&self, limit: i32, offset: i32) -> Result<(Vec<Post>, i64), SqlxError>;
 
     /// Обновление существующей публикации (поста).
     async fn update(&self, post: &Post) -> Result<(), SqlxError>;
@@ -83,10 +87,15 @@ impl PostRepository for PostRepo {
     ///
     /// В текущей реализации выгрузка производится по дате создания, от самой
     /// молодой (поле `created_at` индексировано).
-    async fn list(&self, limit: i32, offset: i32) -> Result<Vec<Post>, SqlxError> {
+    ///
+    /// ## Returns
+    ///
+    /// Возвращает перечень публикаций, с учётом условий заказа, а также общее
+    /// количество публикаций в базе данных.
+    async fn list(&self, limit: i32, offset: i32) -> Result<(Vec<Post>, i64), SqlxError> {
         let results = sqlx::query(
             r#"
-            SELECT id, title, content, author_id, created_at, updated_at 
+            SELECT id, title, content, author_id, created_at, updated_at
             FROM posts
             ORDER BY created_at DESC
             LIMIT $1
@@ -98,10 +107,16 @@ impl PostRepository for PostRepo {
         .fetch_all(&self.pool)
         .await?;
 
-        Ok(results
+        let posts = results
             .into_iter()
             .map(|row| make_post_by_row(&row))
-            .collect())
+            .collect();
+
+        let total_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM posts")
+            .fetch_one(&self.pool)
+            .await?;
+
+        Ok((posts, total_count))
     }
 
     async fn update(&self, post: &Post) -> Result<(), SqlxError> {

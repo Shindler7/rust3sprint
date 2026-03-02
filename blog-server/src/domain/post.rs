@@ -97,6 +97,31 @@ impl Post {
     }
 }
 
+/// Перечень публикаций с пагинацией, полученных по запросу из репозитория.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub(crate) struct ListPosts {
+    /// Перечень публикаций.
+    pub(crate) posts: Vec<Post>,
+    /// Общее количество публикаций в базе данных.
+    pub(crate) total: i64,
+    /// Количество выгруженных записей.
+    pub(crate) limit: i32,
+    /// Сдвиг.
+    pub(crate) offset: i32,
+}
+
+impl ListPosts {
+    /// Сформировать экземпляр [`ListPosts`].
+    pub(crate) fn new(posts: Vec<Post>, total: i64, limit: i32, offset: i32) -> Self {
+        Self {
+            posts,
+            total,
+            limit,
+            offset,
+        }
+    }
+}
+
 /// Dto-структура для создания записи (поста).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct CreatePost {
